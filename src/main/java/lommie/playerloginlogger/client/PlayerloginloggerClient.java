@@ -27,6 +27,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientTickEvents.END_CLIENT_TICK.register(c ->{
+            if (c.world == null) return;
             ArrayList<UUID> leftPlayers = new ArrayList<>();
             ArrayList<UUID> joinedPlayers = new ArrayList<>();
             ArrayList<UUID> currentPlayers = new ArrayList<>();
@@ -82,7 +83,11 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         LocalDateTime leftDate = loadLeftDate(id, c.getCurrentServerEntry().address);
         message = message.replace("$(date)",leftDate.getDayOfMonth()+"/"+leftDate.getMonth()+"/"+leftDate.getYear());
         message = message.replace("$(time)",leftDate.getMinute()+" minutes "+leftDate.getHour()+" hours");
-        message = message.replace("$(player)", c.world.getPlayerByUuid(id).getDisplayName().getLiteralString());
+        if (c.world.getPlayerByUuid(id) != null) {
+            message = message.replace("$(player)", c.world.getPlayerByUuid(id).getDisplayName().getString());
+        } else {
+            message = message.replace("$(player)","{"+id.toString()+"}");
+        }
         Duration since = Duration.between(leftDate,LocalDateTime.now());
         message = message.replace("$(since)",((int) since.toDaysPart())+" days "+since.toHoursPart()+" hours "+since.toMinutesPart()+" minutes");
         return Text.literal(message);
@@ -92,7 +97,9 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         NbtCompound root = null;
         if (!SAVE_FILE.exists()) {
             try {
-                Files.createDirectories(SAVE_FILE.getParentFile().toPath());
+                if (SAVE_FILE.getParentFile() != null) {
+                    Files.createDirectories(SAVE_FILE.getParentFile().toPath());
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -129,7 +136,11 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             if(!root.contains(address)){
                 return LocalDateTime.now();
             }
-            NbtCompound idsAndDates = ((NbtCompound) root.get(address)).getCompound(id.toString()).get();
+            Optional<NbtCompound> idsAndDatesOp = ((NbtCompound) root.get(address)).getCompound(id.toString());
+            NbtCompound idsAndDates = new NbtCompound();
+            if (idsAndDatesOp.isPresent()){
+                idsAndDates = idsAndDatesOp.get();
+            }
             String time = idsAndDates.getString(id.toString(),"NOPE");
             if (time.equals("NOPE")){
                 return LocalDateTime.now();
