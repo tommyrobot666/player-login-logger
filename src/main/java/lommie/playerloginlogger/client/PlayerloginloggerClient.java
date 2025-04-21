@@ -2,7 +2,6 @@ package lommie.playerloginlogger.client;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -13,24 +12,26 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
 import java.io.*;
-import java.lang.reflect.Array;
-import java.lang.reflect.Type;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
 
 public class PlayerloginloggerClient implements ClientModInitializer {
+    final String[] defaultConfig = {"Player $(player) joined at $(date) $(time), last seen $(since) ago.\n($(rawTime), $(rawSince))","Player $(player) left at $(date) $(time), last seen $(since) ago.\n($(rawTime), $(rawSince))","red"};
     private static final File SAVE_FILE = new File("player_login_logger_logs.dat");
     private static final File CONFIG_FILE = new File("config/player_login_logger/messages.json");
-    ArrayList<UUID> lastPlayers = new ArrayList<>();
+    Set<UUID> lastPlayers = new HashSet<>();
 
     @Override
     public void onInitializeClient() {
         ClientTickEvents.END_CLIENT_TICK.register(c ->{
             if (c.world == null) return;
-            ArrayList<UUID> leftPlayers = new ArrayList<>();
-            ArrayList<UUID> joinedPlayers = new ArrayList<>();
-            ArrayList<UUID> currentPlayers = new ArrayList<>();
+            Set<UUID> leftPlayers = new HashSet<>();
+            Set<UUID> joinedPlayers = new HashSet<>();
+            Set<UUID> currentPlayers = new HashSet<>();
             c.world.getPlayers().forEach(
                     i -> currentPlayers.add(i.getUuid())
             );
@@ -58,7 +59,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((p,c) -> {
-            ArrayList<UUID> currentPlayers = new ArrayList<>();
+            Set<UUID> currentPlayers = new HashSet<>();
             c.world.getPlayers().forEach(
                     i -> currentPlayers.add(i.getUuid())
             );
@@ -81,16 +82,27 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     private MutableText replaceMessage(UUID id, MinecraftClient c, String message) {
         LocalDateTime leftDate = loadLeftDate(id, c.getCurrentServerEntry().address);
-        message = message.replace("$(date)",leftDate.getDayOfMonth()+"/"+leftDate.getMonth()+"/"+leftDate.getYear());
-        message = message.replace("$(time)",leftDate.getMinute()+" minutes "+leftDate.getHour()+" hours");
+        message = message.replace("$(date)", leftDate == null ? "{null}" : leftDate.getDayOfMonth()+"/"+leftDate.getMonthValue()+"/"+leftDate.getYear());
+        message = message.replace("$(time)", leftDate == null ? "{null}" : leftDate.getMinute()+" minutes "+leftDate.getHour()+" hours");
+        message = message.replace("$(rawTime)", leftDate == null ? "{null}" : leftDate.toString());
+        Duration since =  leftDate == null ? Duration.ZERO :  Duration.between(leftDate,LocalDateTime.now());
+        message = message.replace("$(since)",((int) since.toDaysPart())+" days "+since.toHoursPart()+" hours "+since.toMinutesPart()+" minutes "+since.toSecondsPart()+" seconds");
+        message = message.replace("$(rawSince)", since.toString());
+        String[] splitMessage = message.split("\\$\\(player\\)", -1);
+        Text playerName = null;
         if (c.world.getPlayerByUuid(id) != null) {
-            message = message.replace("$(player)", c.world.getPlayerByUuid(id).getDisplayName().getString());
+            playerName = c.world.getPlayerByUuid(id).getDisplayName();
         } else {
-            message = message.replace("$(player)","{"+id.toString()+"}");
+            playerName = Text.of("{"+id.toString()+"}");
         }
-        Duration since = Duration.between(leftDate,LocalDateTime.now());
-        message = message.replace("$(since)",((int) since.toDaysPart())+" days "+since.toHoursPart()+" hours "+since.toMinutesPart()+" minutes");
-        return Text.literal(message);
+        MutableText text = Text.empty();
+        for (int i = 0; i < splitMessage.length; i++) {
+            text.append(Text.literal(splitMessage[i]));//.setStyle(Style.EMPTY.withColor(TextColor.parse(loadConfig()[2]))));
+            if (i < splitMessage.length - 1) {
+                text.append(playerName.copy());
+            }
+        }
+        return text;
     }
 
     private void saveLeftDate(UUID id,  String address, LocalDateTime date) {
@@ -106,54 +118,46 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             root = new NbtCompound();
         } else {
             try {
-                root = NbtIo.read(SAVE_FILE.toPath());
+                root = readNbtCompound(SAVE_FILE);
             } catch (IOException e) {
                 e.printStackTrace();
+                root = new NbtCompound();
             }
         }
 
-        Optional<NbtCompound> idsAndDates = root.getCompound(address);
-        if (idsAndDates.isEmpty()){
-            root.put(address,new NbtCompound());
-            idsAndDates = root.getCompound(address);
-        }
+        NbtCompound idsAndDates = root.getCompound(address);
 
-        idsAndDates.get().putString(id.toString(),date.toString());
+        idsAndDates.putString(id.toString(),date.toString());
 
+        root.put(address,idsAndDates);
 
         try {
-            NbtIo.write(root,SAVE_FILE.toPath());
+            writeNbtCompound(root,SAVE_FILE);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private LocalDateTime loadLeftDate(UUID id, String address) {
-        if (!SAVE_FILE.exists()) return LocalDateTime.now();
+        if (!SAVE_FILE.exists()) return null;
 
         try {
-            NbtCompound root = NbtIo.read(SAVE_FILE.toPath());
+            NbtCompound root = readNbtCompound(SAVE_FILE);
             if(!root.contains(address)){
-                return LocalDateTime.now();
+                return null;
             }
-            Optional<NbtCompound> idsAndDatesOp = ((NbtCompound) root.get(address)).getCompound(id.toString());
-            NbtCompound idsAndDates = new NbtCompound();
-            if (idsAndDatesOp.isPresent()){
-                idsAndDates = idsAndDatesOp.get();
+            NbtCompound idsAndDates = root.getCompound(address);
+            String time = idsAndDates.getString(id.toString());
+            if (!time.isEmpty()){
+                return LocalDateTime.parse(time);
             }
-            String time = idsAndDates.getString(id.toString(),"NOPE");
-            if (time.equals("NOPE")){
-                return LocalDateTime.now();
-            }
-            return LocalDateTime.parse(time);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return LocalDateTime.now();
+        return null;
     }
 
     private String[] loadConfig() {
-        String[] defaultConfig = {"Player $(player) joined at $(date) $(time), last seen $(since) ago.","Player $(player) left at $(date) $(time), last seen $(since) ago."};
         if (!CONFIG_FILE.exists()) {
             try {
                 Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
@@ -170,6 +174,55 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             e.printStackTrace();
         }
         return defaultConfig;
+    }
+
+    private NbtCompound readNbtCompound(File file) throws IOException {
+        try {
+            return (NbtCompound) NbtIo.class
+                    .getMethod("read", java.nio.file.Path.class)
+                    .invoke(null, file.toPath());
+        } catch (NoSuchMethodException e) {
+            try {
+                return (NbtCompound) NbtIo.class
+                        .getMethod("read", File.class)
+                        .invoke(null, file);
+            } catch (Exception inner) {
+                throw new IOException("Failed to call NbtIo.read(File)", inner);
+            }
+        } catch (Exception e) {
+            throw new IOException("Failed to call NbtIo.read(Path)", e);
+        }
+    }
+
+    private void writeNbtCompound(NbtCompound compound ,File file) throws IOException {
+        try {
+            Method method = NbtIo.class.getDeclaredMethod("write", NbtCompound.class, Path.class);
+            method.setAccessible(true);
+            method.invoke(null, compound, file.toPath());
+        } catch (NoSuchMethodException e) {
+            // oh no
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            throw new IOException("Failed to call NbtIo.write(NbtCompound,Path)", e);
+        }
+
+        try {
+            Method method = NbtIo.class.getDeclaredMethod("write", NbtCompound.class, File.class);
+            method.setAccessible(true);
+            method.invoke(null, compound, file);
+        } catch (NoSuchMethodException e) {
+            // oh no
+        }
+        catch (InvocationTargetException | IllegalAccessException e) {
+            throw new IOException("Failed to call NbtIo.write(NbtCompound,File)", e);
+        }
+
+        try {
+            Method method = NbtIo.class.getDeclaredMethod("write", NbtCompound.class, DataOutput.class);
+            method.setAccessible(true);
+            method.invoke(null, compound, new DataOutputStream(new FileOutputStream(file)));
+        } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
+            throw new IOException("Failed to call NbtIo.write(NbtCompound,DataOutput)", e);
+        }
     }
 
 }
