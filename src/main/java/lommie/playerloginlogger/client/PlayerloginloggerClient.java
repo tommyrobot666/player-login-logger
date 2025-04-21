@@ -14,18 +14,78 @@ import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
 
 public class PlayerloginloggerClient implements ClientModInitializer {
-    final String[] defaultConfig = {"Player $(player) joined at $(date) $(time), last seen $(since) ago.\n($(rawTime), $(rawSince))","Player $(player) left at $(date) $(time), last seen $(since) ago.\n($(rawTime), $(rawSince))","red"};
+    final MessageConfig defaultConfig = new MessageConfig(
+            new MessageConfig.MessageEntry("$(player) joined at $(date) $(time),\nlast seen $(since) ago.","#004f00"),
+            new MessageConfig.MessageEntry("$(player) seen for the first time at $(date) $(time)","#00ff00"),
+            new MessageConfig.MessageEntry("Last joined this server $(since) ago","#ffffff")
+    );
     private static final File SAVE_FILE = new File("player_login_logger_logs.dat");
     private static final File CONFIG_FILE = new File("config/player_login_logger/messages.json");
-    Set<UUID> lastPlayers = new HashSet<>();
+    private static Set<UUID> lastPlayers = new HashSet<>();
+
+    // Config class for messages with text and color
+    private static class MessageConfig {
+        MessageConfig(){
+        }
+
+        MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, Optional<MessageEntry> leave_message){
+            this.join_message = join_message;
+            this.first_time_message = first_time_message;
+            this.leave_message = leave_message;
+        }
+
+        MessageConfig(MessageEntry join_message, MessageEntry welcome_back_message, MessageEntry first_time_message){
+            this(join_message, first_time_message, welcome_back_message, Optional.empty());
+        }
+
+        MessageEntry join_message = new MessageEntry("","");
+        MessageEntry first_time_message = new MessageEntry("","");
+        Optional<MessageEntry> leave_message = Optional.empty();
+        MessageEntry welcome_back_message = new MessageEntry("","");
+
+        static class MessageEntry {
+            String text;
+            String color;
+
+            public MessageEntry(String text, String color) {
+                this.text = text;
+                this.color = color;
+            }
+        }
+
+        static class AbleToBeTurnedIntoJson{
+            private MessageEntry join_message = new MessageEntry("","");
+            private MessageEntry first_time_message = new MessageEntry("","");
+            private MessageEntry leave_message = new MessageEntry("","");
+            private boolean no_leave_message = false;
+            private MessageEntry welcome_back_message = new MessageEntry("","");
+
+            AbleToBeTurnedIntoJson(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, Optional<MessageEntry> leave_message){
+                this.join_message = join_message;
+                this.first_time_message = first_time_message;
+                this.welcome_back_message = welcome_back_message;
+                if (leave_message.isPresent()){
+                    this.leave_message = leave_message.get();
+                } else {
+                    this.no_leave_message = true;
+                }
+            }
+
+            AbleToBeTurnedIntoJson(MessageConfig config){
+                this(config.join_message,config.first_time_message,config.welcome_back_message,config.leave_message);
+            }
+
+            MessageConfig toNormalConfig(){
+                return new MessageConfig(join_message,first_time_message,welcome_back_message,
+                        no_leave_message?Optional.empty(): Optional.ofNullable(leave_message));
+            }
+        }
+    }
 
     @Override
     public void onInitializeClient() {
@@ -39,6 +99,9 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             );
             if (!lastPlayers.contains(c.player.getUuid())){
                 lastPlayers = currentPlayers;
+                for (UUID id : currentPlayers){
+                    joinMessage(id, c);
+                }
             }
             for (UUID id : lastPlayers){
                 if (!currentPlayers.contains(id)){
@@ -69,21 +132,24 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 saveLeftDate(id, c.getCurrentServerEntry().address, LocalDateTime.now());
                 leaveMessage(id, c);
             }
+            lastPlayers = new HashSet<>();
         });
     }
 
     private void joinMessage(UUID id, MinecraftClient c) {
-        String message = loadConfig()[0];
+        MessageConfig.MessageEntry message = id == c.player.getUuid() ? loadConfig().welcome_back_message : loadLeftDate(id, c.getCurrentServerEntry().address) == null ? loadConfig().first_time_message : loadConfig().join_message;
         c.player.sendMessage(replaceMessage(id, c, message),false);
     }
 
     private void leaveMessage(UUID id, MinecraftClient c) {
-        String message = loadConfig()[1];
-        c.player.sendMessage(replaceMessage(id, c, message),false);
+        Optional<MessageConfig.MessageEntry> message = loadConfig().leave_message;
+        message.ifPresent(messageEntry -> c.player.sendMessage(replaceMessage(id, c, messageEntry), false));
     }
 
-    private MutableText replaceMessage(UUID id, MinecraftClient c, String message) {
+    private MutableText replaceMessage(UUID id, MinecraftClient c, MessageConfig.MessageEntry messageEntry) {
         LocalDateTime leftDate = loadLeftDate(id, c.getCurrentServerEntry().address);
+        String message;
+        message = Objects.requireNonNullElse(messageEntry.text, "ERROR: PlayerLoginLoader");
         message = message.replace("$(date)", leftDate == null ? "{null}" : leftDate.getDayOfMonth()+"/"+leftDate.getMonthValue()+"/"+leftDate.getYear());
         message = message.replace("$(time)", leftDate == null ? "{null}" : leftDate.getMinute()+" minutes "+leftDate.getHour()+" hours");
         message = message.replace("$(rawTime)", leftDate == null ? "{null}" : leftDate.toString());
@@ -99,7 +165,11 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
         MutableText text = Text.empty();
         for (int i = 0; i < splitMessage.length; i++) {
-            text.append(Text.literal(splitMessage[i]).setStyle(Style.EMPTY.withColor(TextColor.parse(loadConfig()[2]).getOrThrow())));
+            try {
+                text.append(Text.literal(splitMessage[i]).setStyle(Style.EMPTY.withColor(TextColor.parse(messageEntry.color).getOrThrow())));
+            } catch (IllegalStateException e) {
+                text.append(Text.literal(splitMessage[i]));
+            }
             if (i < splitMessage.length - 1) {
                 text.append(playerName.copy());
             }
@@ -159,11 +229,11 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         return null;
     }
 
-    private String[] loadConfig() {
+    private MessageConfig loadConfig() {
         if (!CONFIG_FILE.exists()) {
             try {
                 Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
-                String json = new GsonBuilder().setPrettyPrinting().create().toJson(defaultConfig);
+                String json = new GsonBuilder().setPrettyPrinting().create().toJson(new MessageConfig.AbleToBeTurnedIntoJson(defaultConfig));
                 Files.writeString(CONFIG_FILE.toPath(), json);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -171,7 +241,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
 
         try (Reader reader = new FileReader(CONFIG_FILE)) {
-            return new Gson().fromJson(reader, String[].class);
+            return (new Gson().fromJson(reader, MessageConfig.AbleToBeTurnedIntoJson.class)).toNormalConfig();
         } catch (IOException e) {
             e.printStackTrace();
         }
