@@ -187,7 +187,11 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                         .getMethod("read", File.class)
                         .invoke(null, file);
             } catch (Exception inner) {
-                throw new IOException("Failed to call NbtIo.read(File)", inner);
+                try {
+                        return NbtIo.read(SAVE_FILE.toPath());
+                } catch (IOException ex) {
+                    throw new RuntimeException("The file will never be read" ,ex);
+                }
             }
         } catch (Exception e) {
             throw new IOException("Failed to call NbtIo.read(Path)", e);
@@ -195,11 +199,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
 
     private void writeNbtCompound(NbtCompound compound ,File file) throws IOException {
-        try {
-            NbtIo.write(compound, new DataOutputStream(new FileOutputStream(file)));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        NbtIo.write(compound, new DataOutputStream(new FileOutputStream(file)));
     }
 
 }
