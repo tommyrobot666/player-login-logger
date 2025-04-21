@@ -196,32 +196,9 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     private void writeNbtCompound(NbtCompound compound ,File file) throws IOException {
         try {
-            Method method = NbtIo.class.getDeclaredMethod("write", NbtCompound.class, Path.class);
-            method.setAccessible(true);
-            method.invoke(null, compound, file.toPath());
-        } catch (NoSuchMethodException e) {
-            // oh no
-        } catch (InvocationTargetException | IllegalAccessException e) {
-            throw new IOException("Failed to call NbtIo.write(NbtCompound,Path)", e);
-        }
-
-        try {
-            Method method = NbtIo.class.getDeclaredMethod("write", NbtCompound.class, File.class);
-            method.setAccessible(true);
-            method.invoke(null, compound, file);
-        } catch (NoSuchMethodException e) {
-            // oh no
-        }
-        catch (InvocationTargetException | IllegalAccessException e) {
-            throw new IOException("Failed to call NbtIo.write(NbtCompound,File)", e);
-        }
-
-        try {
-            Method method = NbtIo.class.getDeclaredMethod("write", NbtCompound.class, DataOutput.class);
-            method.setAccessible(true);
-            method.invoke(null, compound, new DataOutputStream(new FileOutputStream(file)));
-        } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
-            throw new IOException("Failed to call NbtIo.write(NbtCompound,DataOutput)", e);
+            NbtIo.write(compound, new DataOutputStream(new FileOutputStream(file)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
