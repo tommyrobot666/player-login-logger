@@ -9,7 +9,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
@@ -97,7 +99,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
         MutableText text = Text.empty();
         for (int i = 0; i < splitMessage.length; i++) {
-            text.append(Text.literal(splitMessage[i]));//.setStyle(Style.EMPTY.withColor(TextColor.parse(loadConfig()[2]))));
+            text.append(Text.literal(splitMessage[i]).setStyle(Style.EMPTY.withColor(TextColor.parse(loadConfig()[2]).getOrThrow())));
             if (i < splitMessage.length - 1) {
                 text.append(playerName.copy());
             }
