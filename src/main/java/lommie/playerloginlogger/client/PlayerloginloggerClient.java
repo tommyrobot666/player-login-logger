@@ -9,9 +9,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
 
 import java.io.*;
@@ -200,77 +198,100 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         return text;
     }
 
-    MutableText[] mapMessageToFormatting(UUID playerId,MinecraftClient client,LocalDateTime leftDate, Duration since,String message, Set<String> noPrefixFormattingChars, char formattingCharPrefix){
+    MutableText[] mapMessageToFormatting(UUID playerId,MinecraftClient client,LocalDateTime leftDate, Duration since,String message, Set<String> formattingChars, char formattingCharPrefix){
         // formattingCharPrefix = $
-        String[] formattingCharsNotSet = new String[noPrefixFormattingChars.size()];
-        for (int j = 0; j < noPrefixFormattingChars.size(); j++) {
-            formattingCharsNotSet[j] = formattingCharPrefix + noPrefixFormattingChars.toArray(String[]::new)[j];
-        }
-        Set<String> formattingChars = Set.copyOf(List.of(formattingCharsNotSet));
+//        String[] formattingCharsNotSet = new String[noPrefixFormattingChars.size()];
+//        List<String> noPrefixFormattingCharsList = noPrefixFormattingChars.stream().toList();
+//        for (int j = 0; j < noPrefixFormattingChars.size(); j++) {
+//            formattingCharsNotSet[j] = formattingCharPrefix + noPrefixFormattingCharsList.get(j);
+//        }
+//        Set<String> formattingChars = Set.copyOf(List.of(formattingCharsNotSet));
 
         ArrayList<MutableText> texts = new ArrayList<>();
 
-        ArrayList<String> lastUsedFormattingChar = new ArrayList<>();
+        LinkedHashSet<String> currentFormattingChars = new LinkedHashSet<>();
         String nextText = "";
         String nextFormatting = "";
-        int charsToGoBackIfNotFormating = 0;
-        boolean addedToNextFormatting = false;
+        int charsAddedToNextFormatting = 0;
+        boolean addedACharToNextFormatting = false;
         for (int i = 0; i < message.length(); i++) {
             if (formattingChars.contains(nextFormatting)){
-                lastUsedFormattingChar.add(nextFormatting);
-                charsToGoBackIfNotFormating = 0;
+                int result = formattingCharToReplace(currentFormattingChars, nextFormatting);
+                if (result == -2){
+                    currentFormattingChars.clear();
+                } else if (result == -1) {
+                    currentFormattingChars.add(nextFormatting);
+                } else {
+                    ArrayList<String> list = new ArrayList<>(currentFormattingChars.stream().toList());
+                    list.add(result,nextFormatting);
+                    currentFormattingChars = new LinkedHashSet<>(list);
+                }
+
+                charsAddedToNextFormatting = 0;
                 nextFormatting = "";
             }
 
-            char c = message.toCharArray()[i];
-            for (String formatting : formattingChars){
-                if (formatting.length() > charsToGoBackIfNotFormating){
-                    nextFormatting += c;
-                    charsToGoBackIfNotFormating++;
-                    addedToNextFormatting = true;
+            char c = message.charAt(i);
+            if (c == formattingCharPrefix) {
+                int j = 1;
+                String nextNextFormatting = "";
+                ArrayList<String> formattingCharsLeft = new ArrayList<>(formattingChars);
+                while (formattingCharsLeft.size() > 1) {
+                    nextNextFormatting += message.charAt(i+j);
+                    j++;
+
+                    ArrayList<String> tempFormattingCharsLeft = (ArrayList<String>) formattingCharsLeft.clone();
+                    formattingCharsLeft = new ArrayList<>();
+                    for (String formatting : tempFormattingCharsLeft){
+                        if (formatting.startsWith(nextNextFormatting)){
+                            formattingCharsLeft.add(formatting);
+                        }
+                    }
+                }
+                if (formattingCharsLeft.size() == 1){
+                    nextFormatting = formattingCharsLeft.get(0);
+                    charsAddedToNextFormatting = formattingCharsLeft.get(0).length();
+                    addedACharToNextFormatting = true;
                 }
             }
-            if (!addedToNextFormatting){
-                if (charsToGoBackIfNotFormating > 0) {
+            if (!addedACharToNextFormatting){
+                if (charsAddedToNextFormatting > 0) {
                     //just finished adding a formatting
                     //only had the start of a formatting char
                     //add formatting to that
                     nextText += nextFormatting;
                     nextFormatting = "";
-                    charsToGoBackIfNotFormating = 0;
+                    charsAddedToNextFormatting = 0;
 
 
                     // adding a new text
-                    lastUsedFormattingChar = removeIncompatibleFormattingChars(lastUsedFormattingChar);
-
-                    MutableText newText = ConstructNewFormattedText(playerId, client, leftDate, since, nextText, lastUsedFormattingChar);
-
+                    MutableText newText = constructNewFormattedText(playerId, client, leftDate, since, nextText, currentFormattingChars);
                     nextText = "";
-
                     texts.add(newText);
 
-                    lastUsedFormattingChar = new ArrayList<>(lastUsedFormattingChar.stream().filter(charInLastUsedFormattingChar -> charInLastUsedFormattingChar.length() == 1).toList());
-                    lastUsedFormattingChar.replaceAll( charInLastUsedFormattingChar -> formattingCharPrefix + charInLastUsedFormattingChar);
-
+                    currentFormattingChars = removeFakeFormatting(currentFormattingChars);
                 }
 
                 nextText += c;
             }
 
-            addedToNextFormatting = false;
+            addedACharToNextFormatting = false;
+        }
+        if (!nextText.isEmpty()) {
+            texts.add(constructNewFormattedText(playerId, client, leftDate, since, nextText, currentFormattingChars));
         }
         return texts.toArray(MutableText[]::new);
     }
 
-    private static MutableText ConstructNewFormattedText(UUID playerId, MinecraftClient client, LocalDateTime leftDate, Duration since, String nextText, ArrayList<String> lastUsedFormattingChar) {
+    private static MutableText constructNewFormattedText(UUID playerId, MinecraftClient client, LocalDateTime leftDate, Duration since, String nextText, Set<String> lastUsedFormattingChar) {
         MutableText newText = Text.literal(nextText);
         ArrayList<Formatting> realFormatting = new ArrayList<>();
         String replacementFormatting = "";
         for (String prefixRemovedItem : lastUsedFormattingChar){
-            if (prefixRemovedItem.length() > 1){
-                replacementFormatting = prefixRemovedItem;
-            } else {
+            if (prefixRemovedItem.length() == 1){
                 realFormatting.add(Formatting.byCode(prefixRemovedItem.charAt(0)));
+            } else {
+                replacementFormatting = prefixRemovedItem;
             }
         }
 
@@ -301,46 +322,56 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         return newText;
     }
 
-    private ArrayList<String> removeIncompatibleFormattingChars(ArrayList<String> lastUsedFormattingChar) {
-        ArrayList<String> prefixRemoved = new ArrayList<>();
-        for (String prefixedFormattingChar : lastUsedFormattingChar){
+    private int formattingCharToReplace(Set<String> currentFormattingChars, String theChar) {
+        Set<String> prefixRemoved = new HashSet<>();
+        for (String prefixedFormattingChar : currentFormattingChars){
             prefixRemoved.add(prefixedFormattingChar.substring(1));
         }
-        ArrayList<Formatting> realFormatting = new ArrayList<>();
-        String replacementFormatting = "";
+
+        if (theChar.substring(1).length() != 1){
+            int toReplace = -1; //add to list
+            for (int i = 0; i < currentFormattingChars.size(); i++) {
+                String currentFormattingCharsItem = currentFormattingChars.toArray(String[]::new)[i];
+                if (currentFormattingCharsItem.length() != 1){
+                    toReplace = i;
+                }
+            }
+            return toReplace;
+        }
+
+        Set<Formatting> realFormatting = new HashSet<>();
         for (String prefixRemovedItem : prefixRemoved){
-            if (prefixRemovedItem.length() > 1){
-                replacementFormatting = prefixRemovedItem;
-            } else {
+            if (prefixRemovedItem.length() == 1){
                 realFormatting.add(Formatting.byCode(prefixRemovedItem.charAt(0)));
             }
         }
-        Collections.reverse(realFormatting);
-        ArrayList<Formatting> addedRealFormatting = new ArrayList<>();
-        for (Formatting theFormatting : realFormatting){
-            if (theFormatting == Formatting.RESET) {
-                break;
+
+        Formatting theFormatting = Formatting.byCode(theChar.charAt(1));
+        if (theFormatting == Formatting.RESET) {
+            return -2; //clear list
+        }
+        if (theFormatting.isColor()) {
+            for (int i = 0; i < realFormatting.size(); i++) {
+                Formatting realFormattingItem = realFormatting.toArray(Formatting[]::new)[i];
+                if (realFormattingItem.isColor()){
+                    return i;
+                }
             }
-            if (theFormatting.isColor()) {
-                boolean addedColor = false;
-                for (Formatting addedRealFormattingItem : addedRealFormatting){
-                    if (addedRealFormattingItem.isColor()){
-                        addedColor = true;
-                    }
-                }
-                if (!addedColor){
-                    addedRealFormatting.add(theFormatting);
-                }
-            } else if (theFormatting.isModifier() && !addedRealFormatting.contains(theFormatting)) {
-                addedRealFormatting.add(theFormatting);
+        } else if (theFormatting.isModifier() && !realFormatting.contains(theFormatting)) {
+            return -1; //add it
+        }
+
+        return -1;
+    }
+
+    private LinkedHashSet<String> removeFakeFormatting(LinkedHashSet<String> currentFormattingChars){
+        LinkedHashSet<String> kept = new LinkedHashSet<>();
+        for (String i : currentFormattingChars){
+            if (i.length() == 2){
+                kept.add(i);
             }
         }
-        ArrayList<String> butArentIGoingToTurnThisBackIntoFormattingSoonQuestionMark = new ArrayList<>();
-        for (Formatting addedRealFormattingItem : addedRealFormatting){
-            butArentIGoingToTurnThisBackIntoFormattingSoonQuestionMark.add(addedRealFormattingItem.getCode() + "");
-        }
-        butArentIGoingToTurnThisBackIntoFormattingSoonQuestionMark.add(replacementFormatting);
-        return butArentIGoingToTurnThisBackIntoFormattingSoonQuestionMark;
+        return kept;
     }
 
     private void saveLeftDate(UUID id,  String address, LocalDateTime date) {
