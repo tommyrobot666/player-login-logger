@@ -12,13 +12,39 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
+import net.minecraft.util.Formatting;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
 
 public class PlayerloginloggerClient implements ClientModInitializer {
+    final Set<String> noPrefixFormatting;
+    {
+        ArrayList<String> noPrefixFormattingChars = new ArrayList<>();
+        for (Formatting formatting : Formatting.values()){
+            noPrefixFormattingChars.add(formatting.getCode() + "");
+        }
+        noPrefixFormattingChars.addAll(List.of(
+                "(endOfTEXT)",
+                "(player)",
+                "(month)",
+                "(day)",
+                "(year)",
+                "(minute)",
+                "(hour)",
+                "(second)",
+                "(raw-time)",
+                "(since-day)",
+                "(since-minute)",
+                "(since-hour)",
+                "(since-second)",
+                "(raw-since)"));
+        noPrefixFormatting = Set.copyOf(noPrefixFormattingChars);
+    }
+    final private String configComment = "";
     final MessageConfig defaultConfig = new MessageConfig(
             new MessageConfig.MessageEntry("$(player) joined at $(date) $(time),\nlast seen $(since) ago.","#004f00"),
             new MessageConfig.MessageEntry("$(player) seen for the first time at $(date) $(time)","#00ff00"),
@@ -33,16 +59,26 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         MessageConfig(){
         }
 
+        MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, Optional<MessageEntry> leave_message, char formattingPrefix){
+            this.join_message = join_message;
+            this.first_time_message = first_time_message;
+            this.leave_message = leave_message;
+            this.welcome_back_message = welcome_back_message;
+            this.formattingPrefix = formattingPrefix;
+        }
+
         MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, Optional<MessageEntry> leave_message){
             this.join_message = join_message;
             this.first_time_message = first_time_message;
             this.leave_message = leave_message;
+            this.welcome_back_message = welcome_back_message;
         }
 
         MessageConfig(MessageEntry join_message, MessageEntry welcome_back_message, MessageEntry first_time_message){
             this(join_message, first_time_message, welcome_back_message, Optional.empty());
         }
 
+        char formattingPrefix = '$';
         MessageEntry join_message = new MessageEntry("","");
         MessageEntry first_time_message = new MessageEntry("","");
         Optional<MessageEntry> leave_message = Optional.empty();
@@ -59,6 +95,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
 
         static class AbleToBeTurnedIntoJson{
+            char formattingPrefix = '$';
             private MessageEntry join_message = new MessageEntry("","");
             private MessageEntry first_time_message = new MessageEntry("","");
             private MessageEntry leave_message = new MessageEntry("","");
@@ -82,7 +119,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
             MessageConfig toNormalConfig(){
                 return new MessageConfig(join_message,first_time_message,welcome_back_message,
-                        no_leave_message?Optional.empty(): Optional.ofNullable(leave_message));
+                        no_leave_message?Optional.empty(): Optional.ofNullable(leave_message), formattingPrefix);
             }
         }
     }
@@ -91,6 +128,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     public void onInitializeClient() {
         ClientTickEvents.END_CLIENT_TICK.register(c ->{
             if (c.world == null) return;
+            if (c.getCurrentServerEntry() == null) return;
             Set<UUID> leftPlayers = new HashSet<>();
             Set<UUID> joinedPlayers = new HashSet<>();
             Set<UUID> currentPlayers = new HashSet<>();
@@ -124,6 +162,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((p,c) -> {
+            if (c.getCurrentServerEntry() == null) return;
             Set<UUID> currentPlayers = new HashSet<>();
             c.world.getPlayers().forEach(
                     i -> currentPlayers.add(i.getUuid())
@@ -137,44 +176,171 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
 
     private void joinMessage(UUID id, MinecraftClient c) {
-        MessageConfig.MessageEntry message = id == c.player.getUuid() ? loadConfig().welcome_back_message : loadLeftDate(id, c.getCurrentServerEntry().address) == null ? loadConfig().first_time_message : loadConfig().join_message;
-        c.player.sendMessage(replaceMessage(id, c, message),false);
+        MessageConfig config = loadConfig();
+        MessageConfig.MessageEntry message = id == c.player.getUuid() ? config.welcome_back_message : loadLeftDate(id, c.getCurrentServerEntry().address) == null ? config.first_time_message : config.join_message;
+        c.player.sendMessage(replaceMessage(id, c, message, config.formattingPrefix),false);
     }
 
     private void leaveMessage(UUID id, MinecraftClient c) {
-        Optional<MessageConfig.MessageEntry> message = loadConfig().leave_message;
-        message.ifPresent(messageEntry -> c.player.sendMessage(replaceMessage(id, c, messageEntry), false));
+        MessageConfig config = loadConfig();
+        Optional<MessageConfig.MessageEntry> message = config.leave_message;
+        message.ifPresent(messageEntry -> c.player.sendMessage(replaceMessage(id, c, messageEntry, config.formattingPrefix), false));
     }
 
-    private MutableText replaceMessage(UUID id, MinecraftClient c, MessageConfig.MessageEntry messageEntry) {
+    private MutableText replaceMessage(UUID id, MinecraftClient c, MessageConfig.MessageEntry messageEntry, char formattingCharPrefix) {
         LocalDateTime leftDate = loadLeftDate(id, c.getCurrentServerEntry().address);
-        String message;
-        message = Objects.requireNonNullElse(messageEntry.text, "ERROR: PlayerLoginLoader");
-        message = message.replace("$(date)", leftDate == null ? "{null}" : leftDate.getDayOfMonth()+"/"+leftDate.getMonthValue()+"/"+leftDate.getYear());
-        message = message.replace("$(time)", leftDate == null ? "{null}" : leftDate.getMinute()+" minutes "+leftDate.getHour()+" hours");
-        message = message.replace("$(rawTime)", leftDate == null ? "{null}" : leftDate.toString());
+        String message = Objects.requireNonNullElse(messageEntry.text, "$cERROR: PlayerLoginLoader");
         Duration since =  leftDate == null ? Duration.ZERO :  Duration.between(leftDate,LocalDateTime.now());
-        message = message.replace("$(since)",((int) since.toDaysPart())+" days "+since.toHoursPart()+" hours "+since.toMinutesPart()+" minutes "+since.toSecondsPart()+" seconds");
-        message = message.replace("$(rawSince)", since.toString());
-        String[] splitMessage = message.split("\\$\\(player\\)", -1);
-        Text playerName = null;
-        if (c.world.getPlayerByUuid(id) != null) {
-            playerName = c.world.getPlayerByUuid(id).getDisplayName();
-        } else {
-            playerName = Text.of("{"+id.toString()+"}");
-        }
-        MutableText text = Text.empty();
-        for (int i = 0; i < splitMessage.length; i++) {
-            try {
-                text.append(Text.literal(splitMessage[i]).setStyle(Style.EMPTY.withColor(TextColor.parse(messageEntry.color).getOrThrow())));
-            } catch (IllegalStateException e) {
-                text.append(Text.literal(splitMessage[i]));
-            }
-            if (i < splitMessage.length - 1) {
-                text.append(playerName.copy());
-            }
+
+        MutableText[] texts = mapMessageToFormatting(id,c,leftDate,since,message, noPrefixFormatting ,formattingCharPrefix);
+        MutableText text = texts[0];
+        for (int i = 1; i < texts.length; i++) {
+            text.append(texts[i]);
         }
         return text;
+    }
+
+    MutableText[] mapMessageToFormatting(UUID playerId,MinecraftClient client,LocalDateTime leftDate, Duration since,String message, Set<String> noPrefixFormattingChars, char formattingCharPrefix){
+        // formattingCharPrefix = $
+        String[] formattingCharsNotSet = new String[noPrefixFormattingChars.size()];
+        for (int j = 0; j < noPrefixFormattingChars.size(); j++) {
+            formattingCharsNotSet[j] = formattingCharPrefix + noPrefixFormattingChars.toArray(String[]::new)[j];
+        }
+        Set<String> formattingChars = Set.copyOf(List.of(formattingCharsNotSet));
+
+        ArrayList<MutableText> texts = new ArrayList<>();
+
+        ArrayList<String> lastUsedFormattingChar = new ArrayList<>();
+        String nextText = "";
+        String nextFormatting = "";
+        int charsToGoBackIfNotFormating = 0;
+        boolean addedToNextFormatting = false;
+        for (int i = 0; i < message.length(); i++) {
+            if (formattingChars.contains(nextFormatting)){
+                lastUsedFormattingChar.add(nextFormatting);
+                charsToGoBackIfNotFormating = 0;
+                nextFormatting = "";
+            }
+
+            char c = message.toCharArray()[i];
+            for (String formatting : formattingChars){
+                if (formatting.length() > charsToGoBackIfNotFormating){
+                    nextFormatting += c;
+                    charsToGoBackIfNotFormating++;
+                    addedToNextFormatting = true;
+                }
+            }
+            if (!addedToNextFormatting){
+                if (charsToGoBackIfNotFormating > 0) {
+                    //just finished adding a formatting
+                    //only had the start of a formatting char
+                    //add formatting to that
+                    nextText += nextFormatting;
+                    nextFormatting = "";
+                    charsToGoBackIfNotFormating = 0;
+
+
+                    // adding a new text
+                    lastUsedFormattingChar = removeIncompatibleFormattingChars(lastUsedFormattingChar);
+
+                    MutableText newText = ConstructNewFormattedText(playerId, client, leftDate, since, nextText, lastUsedFormattingChar);
+
+                    nextText = "";
+
+                    texts.add(newText);
+
+                    lastUsedFormattingChar = new ArrayList<>(lastUsedFormattingChar.stream().filter(charInLastUsedFormattingChar -> charInLastUsedFormattingChar.length() == 1).toList());
+                    lastUsedFormattingChar.replaceAll( charInLastUsedFormattingChar -> formattingCharPrefix + charInLastUsedFormattingChar);
+
+                }
+
+                nextText += c;
+            }
+
+            addedToNextFormatting = false;
+        }
+        return texts.toArray(MutableText[]::new);
+    }
+
+    private static MutableText ConstructNewFormattedText(UUID playerId, MinecraftClient client, LocalDateTime leftDate, Duration since, String nextText, ArrayList<String> lastUsedFormattingChar) {
+        MutableText newText = Text.literal(nextText);
+        ArrayList<Formatting> realFormatting = new ArrayList<>();
+        String replacementFormatting = "";
+        for (String prefixRemovedItem : lastUsedFormattingChar){
+            if (prefixRemovedItem.length() > 1){
+                replacementFormatting = prefixRemovedItem;
+            } else {
+                realFormatting.add(Formatting.byCode(prefixRemovedItem.charAt(0)));
+            }
+        }
+
+        for (Formatting realFormattingItem : realFormatting){
+            newText = newText.formatted(realFormattingItem);
+        }
+
+        Text addOn = switch (replacementFormatting){
+            case "(player)" -> client.world.getPlayerByUuid(playerId) == null ? Text.literal("{"+ playerId.toString()+"}").setStyle(newText.getStyle()) : client.world.getPlayerByUuid(playerId).getDisplayName();
+            case "(month)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getMonthValue()+"").setStyle(newText.getStyle());
+            case "(day)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getDayOfMonth()+"").setStyle(newText.getStyle());
+            case "(year)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getYear()+"").setStyle(newText.getStyle());
+            case "(minute)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getMinute()+"").setStyle(newText.getStyle());
+            case "(hour)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getHour()+"").setStyle(newText.getStyle());
+            case "(second)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getSecond()+"").setStyle(newText.getStyle());
+            case "(raw-time)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.toString()).setStyle(newText.getStyle());
+            case "(since-day)" -> Text.literal(((int) since.toDaysPart())+"").setStyle(newText.getStyle());
+            case "(since-minute)" -> Text.literal(since.toMinutesPart()+"").setStyle(newText.getStyle());
+            case "(since-hour)" -> Text.literal(since.toHoursPart()+"").setStyle(newText.getStyle());
+            case "(since-second)" -> Text.literal(since.toSecondsPart()+"").setStyle(newText.getStyle());
+            case "(raw-since)" -> Text.literal(since.toString()).setStyle(newText.getStyle());
+            default -> null;
+        };
+
+        if (addOn != null){
+            newText.append(addOn);
+        }
+        return newText;
+    }
+
+    private ArrayList<String> removeIncompatibleFormattingChars(ArrayList<String> lastUsedFormattingChar) {
+        ArrayList<String> prefixRemoved = new ArrayList<>();
+        for (String prefixedFormattingChar : lastUsedFormattingChar){
+            prefixRemoved.add(prefixedFormattingChar.substring(1));
+        }
+        ArrayList<Formatting> realFormatting = new ArrayList<>();
+        String replacementFormatting = "";
+        for (String prefixRemovedItem : prefixRemoved){
+            if (prefixRemovedItem.length() > 1){
+                replacementFormatting = prefixRemovedItem;
+            } else {
+                realFormatting.add(Formatting.byCode(prefixRemovedItem.charAt(0)));
+            }
+        }
+        Collections.reverse(realFormatting);
+        ArrayList<Formatting> addedRealFormatting = new ArrayList<>();
+        for (Formatting theFormatting : realFormatting){
+            if (theFormatting == Formatting.RESET) {
+                break;
+            }
+            if (theFormatting.isColor()) {
+                boolean addedColor = false;
+                for (Formatting addedRealFormattingItem : addedRealFormatting){
+                    if (addedRealFormattingItem.isColor()){
+                        addedColor = true;
+                    }
+                }
+                if (!addedColor){
+                    addedRealFormatting.add(theFormatting);
+                }
+            } else if (theFormatting.isModifier() && !addedRealFormatting.contains(theFormatting)) {
+                addedRealFormatting.add(theFormatting);
+            }
+        }
+        ArrayList<String> butArentIGoingToTurnThisBackIntoFormattingSoonQuestionMark = new ArrayList<>();
+        for (Formatting addedRealFormattingItem : addedRealFormatting){
+            butArentIGoingToTurnThisBackIntoFormattingSoonQuestionMark.add(addedRealFormattingItem.getCode() + "");
+        }
+        butArentIGoingToTurnThisBackIntoFormattingSoonQuestionMark.add(replacementFormatting);
+        return butArentIGoingToTurnThisBackIntoFormattingSoonQuestionMark;
     }
 
     private void saveLeftDate(UUID id,  String address, LocalDateTime date) {
@@ -234,13 +400,19 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             try {
                 Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
                 String json = new GsonBuilder().setPrettyPrinting().create().toJson(new MessageConfig.AbleToBeTurnedIntoJson(defaultConfig));
-                Files.writeString(CONFIG_FILE.toPath(), json);
+                Files.writeString(CONFIG_FILE.toPath(), configComment + "\n$" + json);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
         try (Reader reader = new FileReader(CONFIG_FILE)) {
+            int c;
+            while ((c = reader.read()) != -1 && c != '$') {}
+            if (c == -1) {
+                throw new IllegalArgumentException("No '$' found in the input");
+            }
+
             return (new Gson().fromJson(reader, MessageConfig.AbleToBeTurnedIntoJson.class)).toNormalConfig();
         } catch (IOException e) {
             e.printStackTrace();
@@ -251,7 +423,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     private NbtCompound readNbtCompound(File file) throws IOException {
         try {
             return (NbtCompound) NbtIo.class
-                    .getMethod("read", java.nio.file.Path.class)
+                    .getMethod("read", Path.class)
                     .invoke(null, file.toPath());
         } catch (NoSuchMethodException e) {
             try {
