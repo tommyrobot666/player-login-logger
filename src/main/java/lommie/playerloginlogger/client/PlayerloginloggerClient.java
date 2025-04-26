@@ -13,6 +13,8 @@ import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -22,6 +24,8 @@ import java.time.format.TextStyle;
 import java.util.*;
 
 public class PlayerloginloggerClient implements ClientModInitializer {
+    static final String MOD_ID = "playerloginlogger";
+    static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     final Set<String> noPrefixFormatting;
     {
         ArrayList<String> noPrefixFormattingChars = new ArrayList<>();
@@ -29,7 +33,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             noPrefixFormattingChars.add(formatting.getCode() + "");
         }
         noPrefixFormattingChars.addAll(List.of(
-                "(endOfTEXT)",
+                "(end)",
                 "(player)",
                 "(month)",
                 "(month-name)",
@@ -48,8 +52,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
     final private String configComment = "";
     final MessageConfig defaultConfig = new MessageConfig(
-            new MessageConfig.MessageEntry("$(player) last seen $(since-day) days, $(since-hour) hours, #(since-minute) minutes, and $(since-second) seconds ago.","#004f00"),
-            new MessageConfig.MessageEntry("$1$(player) seen fo$r the first time","#00ff00"),
+            new MessageConfig.MessageEntry("$(player) last seen $l$(since-day)$r da$(end)ys, $l$(since-hour) hours, $(since-minute) minutes, and $(since-second) seconds$r ago.","#004f00"),
+            new MessageConfig.MessageEntry("$(player) seen for the first time","#00ff00"),
             new MessageConfig.MessageEntry("Last joined this server in $(year) on $(day) of $(month-name) at $(hour):$(minute)","#ffffff")
     );
     private static final File SAVE_FILE = new File("player_login_logger_logs.dat");
@@ -64,16 +68,20 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, Optional<MessageEntry> leave_message, char formattingPrefix){
             this.join_message = join_message;
             this.first_time_message = first_time_message;
-            this.leave_message = leave_message;
+            if (leave_message.isPresent()){
+                this.leave_message = leave_message.orElseThrow();
+                no_leave_message = false;
+            } else {
+                this.leave_message = null;
+                no_leave_message = true;
+            }
+
             this.welcome_back_message = welcome_back_message;
             this.formattingPrefix = formattingPrefix;
         }
 
         MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, Optional<MessageEntry> leave_message){
-            this.join_message = join_message;
-            this.first_time_message = first_time_message;
-            this.leave_message = leave_message;
-            this.welcome_back_message = welcome_back_message;
+            this(join_message, welcome_back_message, first_time_message,leave_message, '$');
         }
 
         MessageConfig(MessageEntry join_message, MessageEntry welcome_back_message, MessageEntry first_time_message){
@@ -83,7 +91,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         char formattingPrefix = '$';
         MessageEntry join_message = new MessageEntry("","");
         MessageEntry first_time_message = new MessageEntry("","");
-        Optional<MessageEntry> leave_message = Optional.empty();
+        MessageEntry leave_message = null;
+        boolean no_leave_message = true;
         MessageEntry welcome_back_message = new MessageEntry("","");
 
         static class MessageEntry {
@@ -96,33 +105,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             }
         }
 
-        static class AbleToBeTurnedIntoJson{
-            char formattingPrefix = '$';
-            private MessageEntry join_message = new MessageEntry("","");
-            private MessageEntry first_time_message = new MessageEntry("","");
-            private MessageEntry leave_message = new MessageEntry("","");
-            private boolean no_leave_message = false;
-            private MessageEntry welcome_back_message = new MessageEntry("","");
-
-            AbleToBeTurnedIntoJson(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, Optional<MessageEntry> leave_message){
-                this.join_message = join_message;
-                this.first_time_message = first_time_message;
-                this.welcome_back_message = welcome_back_message;
-                if (leave_message.isPresent()){
-                    this.leave_message = leave_message.get();
-                } else {
-                    this.no_leave_message = true;
-                }
-            }
-
-            AbleToBeTurnedIntoJson(MessageConfig config){
-                this(config.join_message,config.first_time_message,config.welcome_back_message,config.leave_message);
-            }
-
-            MessageConfig toNormalConfig(){
-                return new MessageConfig(join_message,first_time_message,welcome_back_message,
-                        no_leave_message?Optional.empty(): Optional.ofNullable(leave_message), formattingPrefix);
-            }
+        public Optional<MessageEntry> getLeave_message() {
+            return leave_message==null?Optional.empty():Optional.of(leave_message);
         }
     }
 
@@ -185,13 +169,13 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     private void leaveMessage(UUID id, MinecraftClient c) {
         MessageConfig config = loadConfig();
-        Optional<MessageConfig.MessageEntry> message = config.leave_message;
+        Optional<MessageConfig.MessageEntry> message = config.getLeave_message();
         message.ifPresent(messageEntry -> c.player.sendMessage(replaceMessage(id, c, messageEntry, config.formattingPrefix), false));
     }
 
     private MutableText replaceMessage(UUID id, MinecraftClient c, MessageConfig.MessageEntry messageEntry, char formattingCharPrefix) {
         LocalDateTime leftDate = loadLeftDate(id, c.getCurrentServerEntry().address);
-        String message = Objects.requireNonNullElse(messageEntry.text, "$cERROR: PlayerLoginLoader") + formattingCharPrefix + "(endOfTEXT)";
+        String message = Objects.requireNonNullElse(messageEntry.text,   formattingCharPrefix + "cERROR: PlayerLoginLoader") + formattingCharPrefix + "(end)";
         Duration since =  leftDate == null ? Duration.ZERO :  Duration.between(leftDate,LocalDateTime.now());
 
         MutableText[] texts = mapMessageToFormatting(id,c,leftDate,since,message, noPrefixFormatting ,formattingCharPrefix, messageEntry.color);
@@ -207,7 +191,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         ArrayList<MutableText> texts = new ArrayList<>();
 
         LinkedHashSet<String> currentFormattingChars = new LinkedHashSet<>();
-        String nextText = "";
+        StringBuilder nextText = new StringBuilder();
         String nextFormatting = "";
         int charsAddedToNextFormatting = 0;
         boolean addedACharToNextFormatting = false;
@@ -223,9 +207,13 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                     list.add(result,nextFormatting);
                     currentFormattingChars = new LinkedHashSet<>(list);
                 }
-
                 charsAddedToNextFormatting = 0;
                 nextFormatting = "";
+
+                // adding a new text
+                texts.addAll(constructNewFormattedText(playerId, client, leftDate, since, nextText.toString(), currentFormattingChars, color));
+                nextText = new StringBuilder();
+                currentFormattingChars = removeFakeFormatting(currentFormattingChars);
             }
 
             char c = message.charAt(i);
@@ -248,6 +236,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 if (formattingCharsLeft.size() == 1){
                     nextFormatting = formattingCharsLeft.get(0);
                     charsAddedToNextFormatting = formattingCharsLeft.get(0).length();
+                    i += charsAddedToNextFormatting;
                     addedACharToNextFormatting = true;
                 }
             }
@@ -256,32 +245,24 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                     //just finished adding a formatting
                     //only had the start of a formatting char
                     //add formatting to that
-                    nextText += nextFormatting;
+                    nextText.append(nextFormatting);
                     nextFormatting = "";
                     charsAddedToNextFormatting = 0;
-
-
-                    // adding a new text
-                    MutableText newText = constructNewFormattedText(playerId, client, leftDate, since, nextText, currentFormattingChars, color);
-                    nextText = "";
-                    texts.add(newText);
-
-                    currentFormattingChars = removeFakeFormatting(currentFormattingChars);
                 }
 
-                nextText += c;
+                nextText.append(c);
             }
 
             addedACharToNextFormatting = false;
         }
-        if (!nextText.isEmpty()) {
-            texts.add(constructNewFormattedText(playerId, client, leftDate, since, nextText, currentFormattingChars, color));
+        if (nextText.length() > 0) {
+            texts.addAll(constructNewFormattedText(playerId, client, leftDate, since, nextText.toString(), currentFormattingChars, color));
         }
         return texts.toArray(MutableText[]::new);
     }
 
-    private static MutableText constructNewFormattedText(UUID playerId, MinecraftClient client, LocalDateTime leftDate, Duration since, String nextText, Set<String> lastUsedFormattingChar, String color) {
-        MutableText newText = Text.literal(nextText);
+    private static List<MutableText> constructNewFormattedText(UUID playerId, MinecraftClient client, LocalDateTime leftDate, Duration since, String nextText, Set<String> lastUsedFormattingChar, String color) {
+        MutableText newText = Text.literal(nextText).styled(s -> s.withColor(TextColor.parse(color).getOrThrow()));
         ArrayList<Formatting> realFormatting = new ArrayList<>();
         String replacementFormatting = "";
         for (String prefixRemovedItem : lastUsedFormattingChar){
@@ -293,31 +274,32 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
 
         for (Formatting realFormattingItem : realFormatting){
-            newText = newText.setStyle(Style.EMPTY.withColor(TextColor.parse(color).getOrThrow())).formatted(realFormattingItem);
+            newText = newText.formatted(realFormattingItem);
         }
 
-        Text addOn = switch (replacementFormatting){
-            case "(player)" -> client.world.getPlayerByUuid(playerId) == null ? Text.literal("{"+ playerId.toString()+"}").setStyle(newText.getStyle()) : client.world.getPlayerByUuid(playerId).getDisplayName();
-            case "(month-name)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getMonth().getDisplayName(TextStyle.FULL,Locale.of(client.getLanguageManager().getLanguage()))).setStyle(newText.getStyle());
-            case "(month)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getMonthValue()+"").setStyle(newText.getStyle());
-            case "(day)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getDayOfMonth()+"").setStyle(newText.getStyle());
-            case "(year)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getYear()+"").setStyle(newText.getStyle());
-            case "(minute)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getMinute()+"").setStyle(newText.getStyle());
-            case "(hour)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getHour()+"").setStyle(newText.getStyle());
-            case "(second)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.getSecond()+"").setStyle(newText.getStyle());
-            case "(raw-time)" -> leftDate == null ? Text.literal("{null}").setStyle(newText.getStyle()) : Text.literal(leftDate.toString()).setStyle(newText.getStyle());
-            case "(since-day)" -> Text.literal(((int) since.toDaysPart())+"").setStyle(newText.getStyle());
-            case "(since-minute)" -> Text.literal(since.toMinutesPart()+"").setStyle(newText.getStyle());
-            case "(since-hour)" -> Text.literal(since.toHoursPart()+"").setStyle(newText.getStyle());
-            case "(since-second)" -> Text.literal(since.toSecondsPart()+"").setStyle(newText.getStyle());
-            case "(raw-since)" -> Text.literal(since.toString()).setStyle(newText.getStyle());
+        final MutableText finalNewText = newText;
+        MutableText addOn = switch (replacementFormatting){
+            case "(player)" -> client.world.getPlayerByUuid(playerId) == null ? Text.literal("{"+ playerId.toString()+"}").styled(s -> finalNewText.getStyle()) : client.world.getPlayerByUuid(playerId).getDisplayName().copy();
+            case "(month-name)" -> leftDate == null ? Text.literal("{null}").styled(s -> finalNewText.getStyle()) : Text.literal(leftDate.getMonth().getDisplayName(TextStyle.FULL,Locale.ENGLISH)).styled(s -> finalNewText.getStyle());
+            case "(month)" -> leftDate == null ? Text.literal("{null}").styled(s -> finalNewText.getStyle()) : Text.literal(leftDate.getMonthValue()+"").styled(s -> finalNewText.getStyle());
+            case "(day)" -> leftDate == null ? Text.literal("{null}").styled(s -> finalNewText.getStyle()) : Text.literal(leftDate.getDayOfMonth()+"").styled(s -> finalNewText.getStyle());
+            case "(year)" -> leftDate == null ? Text.literal("{null}").styled(s -> finalNewText.getStyle()) : Text.literal(leftDate.getYear()+"").styled(s -> finalNewText.getStyle());
+            case "(minute)" -> leftDate == null ? Text.literal("{null}").styled(s -> finalNewText.getStyle()) : Text.literal(leftDate.getMinute()+"").styled(s -> finalNewText.getStyle());
+            case "(hour)" -> leftDate == null ? Text.literal("{null}").styled(s -> finalNewText.getStyle()) : Text.literal(leftDate.getHour()+"").styled(s -> finalNewText.getStyle());
+            case "(second)" -> leftDate == null ? Text.literal("{null}").styled(s -> finalNewText.getStyle()) : Text.literal(leftDate.getSecond()+"").styled(s -> finalNewText.getStyle());
+            case "(raw-time)" -> leftDate == null ? Text.literal("{null}").styled(s -> finalNewText.getStyle()) : Text.literal(leftDate.toString()).styled(s -> finalNewText.getStyle());
+            case "(since-day)" -> Text.literal(((int) since.toDaysPart())+"").styled(s -> finalNewText.getStyle());
+            case "(since-minute)" -> Text.literal(since.toMinutesPart()+"").styled(s -> finalNewText.getStyle());
+            case "(since-hour)" -> Text.literal(since.toHoursPart()+"").styled(s -> finalNewText.getStyle());
+            case "(since-second)" -> Text.literal(since.toSecondsPart()+"").styled(s -> finalNewText.getStyle());
+            case "(raw-since)" -> Text.literal(since.toString()).styled(s -> finalNewText.getStyle());
             default -> null;
         };
 
         if (addOn != null){
-            newText.append(addOn);
+            return List.of(newText, addOn);
         }
-        return newText;
+        return List.of(newText);
     }
 
     private int formattingCharToReplace(Set<String> currentFormattingChars, String theChar) {
@@ -327,10 +309,10 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
 
         if (theChar.substring(1).length() != 1){
+            String[] currentFormattingCharArray = currentFormattingChars.toArray(String[]::new);
             int toReplace = -1; //add to list
-            for (int i = 0; i < currentFormattingChars.size(); i++) {
-                String currentFormattingCharsItem = currentFormattingChars.toArray(String[]::new)[i];
-                if (currentFormattingCharsItem.length() != 1){
+            for (int i = 0; i < currentFormattingCharArray.length; i++) {
+                if (currentFormattingCharArray[i].length() != 1){
                     toReplace = i;
                 }
             }
@@ -345,6 +327,9 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
 
         Formatting theFormatting = Formatting.byCode(theChar.charAt(1));
+        if (theFormatting == null){
+            return -1;
+        }
         if (theFormatting == Formatting.RESET) {
             return -2; //clear list
         }
@@ -365,7 +350,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     private LinkedHashSet<String> removeFakeFormatting(LinkedHashSet<String> currentFormattingChars){
         LinkedHashSet<String> kept = new LinkedHashSet<>();
         for (String i : currentFormattingChars){
-            if (i.length() == 2){
+            if (i.length() < 3){
                 kept.add(i);
             }
         }
@@ -428,7 +413,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         if (!CONFIG_FILE.exists()) {
             try {
                 Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
-                String json = new GsonBuilder().setPrettyPrinting().create().toJson(new MessageConfig.AbleToBeTurnedIntoJson(defaultConfig));
+                String json = new GsonBuilder().setPrettyPrinting().create().toJson(defaultConfig);
                 Files.writeString(CONFIG_FILE.toPath(), configComment + "\n$" + json);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -442,7 +427,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 throw new IllegalArgumentException("No '$' found in the input");
             }
 
-            return (new Gson().fromJson(reader, MessageConfig.AbleToBeTurnedIntoJson.class)).toNormalConfig();
+            return new Gson().fromJson(reader, MessageConfig.class);
         } catch (IOException e) {
             e.printStackTrace();
         }
