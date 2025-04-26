@@ -71,7 +71,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             -> Normal minecraft formatting""";
     final MessageConfig defaultConfig = new MessageConfig(
             new MessageConfig.MessageEntry("$(player) last seen $l$(since-day)$r $lda$(end)$lys, $l$(since-hour) hours, $l$(since-minute) minutes, and $l$(since-second) seconds$r ago.","#006f00"),
-            new MessageConfig.MessageEntry("$(player) seen for the $nfirst time","#00ff00"),
+            new MessageConfig.MessageEntry("$(player) seen for the $(end)$nfirst time","#00ff00"),
             new MessageConfig.MessageEntry("Last joined this server in $(year) on $(day) of $(month-name) at $(hour):$(minute)","#eeeeee")
     );
     private static final File SAVE_FILE = new File("player_login_logger_logs.dat");
