@@ -9,7 +9,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
@@ -50,7 +49,26 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 "(raw-since)"));
         noPrefixFormatting = Set.copyOf(noPrefixFormattingChars);
     }
-    final private String configComment = "";
+    final private String configComment =
+            """
+            Supports all of these formatting:
+            $(end) -> A placeholder thing that does nothing,
+            $(player) -> The player's name,
+            $(month) -> Last seen on month,
+            $(month-name) -> Name of last seen on month,
+            $(day) -> Last seen on day,
+            $(year) -> Last seen on year,
+            $(minute) -> Last seen on minute,
+            $(hour) -> Last seen on hour,
+            $(second) -> Last seen on second,
+            $(raw-time) -> LocalDateTime.toString();,
+            $(since-day) -> Days since last seen,
+            $(since-minute) -> Minutes since last seen,
+            $(since-hour) -> Hours since last seen,
+            $(since-second) -> Seconds since last seen,
+            $(raw-since) -> Duration.toString();
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$a,$b,$c,$d,$e,$f,$k,$l,$m,$n,$o,$r
+            -> Normal minecraft formatting""";
     final MessageConfig defaultConfig = new MessageConfig(
             new MessageConfig.MessageEntry("$(player) last seen $l$(since-day)$r da$(end)ys, $l$(since-hour) hours, $(since-minute) minutes, and $(since-second) seconds$r ago.","#004f00"),
             new MessageConfig.MessageEntry("$(player) seen for the first time","#00ff00"),
@@ -414,7 +432,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             try {
                 Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
                 String json = new GsonBuilder().setPrettyPrinting().create().toJson(defaultConfig);
-                Files.writeString(CONFIG_FILE.toPath(), configComment + "\n$" + json);
+                Files.writeString(CONFIG_FILE.toPath(), configComment + "\n|\n" + json);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -422,9 +440,9 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
         try (Reader reader = new FileReader(CONFIG_FILE)) {
             int c;
-            while ((c = reader.read()) != -1 && c != '$') {}
+            while ((c = reader.read()) != -1 && c != '|') {}
             if (c == -1) {
-                throw new IllegalArgumentException("No '$' found in the input");
+                throw new IllegalArgumentException("No '|' found in the input");
             }
 
             return new Gson().fromJson(reader, MessageConfig.class);
