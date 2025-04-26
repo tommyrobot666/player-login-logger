@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "id": "playerloginlogger",
   "version": "${version}",
-  "name": "PlayerLoginLogger",
-  "description": "",
-  "authors": [],
-  "contact": {},
+  "name": "Last Seen Message",
+  "description": "Receive messages when someone joins a server that tells you the last time you have played together.",
+  "authors": ["Me"],
+  "contact": {"Github": "https://github.com/tommyrobot666/player-login-logger"},
   "license": "MIT",
-  "icon": "assets/playerloginlogger/icon.png",
+  "icon": "icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
@@ -18,8 +18,8 @@
     ]
   },
   "depends": {
-    "fabricloader": ">=${loader_version}",
+    "fabricloader": ">=1.13",
     "fabric": "*",
-    "minecraft": ">=${minecraft_version}"
+    "minecraft": ">=1.20.3 <=1.20.4"
   }
 }
