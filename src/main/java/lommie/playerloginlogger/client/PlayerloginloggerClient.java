@@ -245,16 +245,13 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             if (foundPrefix){
                 int finalPlaceholderIndex = placeholderIndex;
                 matchingPlaceholders.removeIf(placeholder -> {
-//                    if (placeholder.length() == finalPlaceholderIndex) return false;
-//                    if (placeholder.length() < finalPlaceholderIndex) return true;
                     if (placeholder.length() <= finalPlaceholderIndex) return false;
                     return placeholder.charAt(finalPlaceholderIndex) != currentChar;
                 });
                 // no valid placeholder
                 if (matchingPlaceholders.isEmpty()){
                     // add section
-                    //finalText.append(currentSection);
-                    finalText.append("fail");
+                    finalText.append(currentSection);
                     currentSection = new StringBuilder();
                     // setup continue
                     foundPrefix = false;
@@ -302,7 +299,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         assert client.world != null;
         return switch (placeholder.substring(1)) {
             case "(player)" ->
-                    client.world.getPlayerByUuid(playerId) == null ? "{" + playerId.toString() + "}" : Objects.requireNonNull(Objects.requireNonNull(client.world.getPlayerByUuid(playerId)).getDisplayName()).copy().toString();
+                    client.world.getPlayerByUuid(playerId) == null ? "{" + playerId.toString() + "}" : Objects.requireNonNull(client.world.getPlayerByUuid(playerId)).getName().getLiteralString();
             case "(month-name)" ->
                     leftDate == null ? "{null}" : leftDate.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
             case "(month)" ->
