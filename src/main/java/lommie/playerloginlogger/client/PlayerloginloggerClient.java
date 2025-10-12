@@ -244,18 +244,24 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             // processing placeholder
             if (foundPrefix){
                 int finalPlaceholderIndex = placeholderIndex;
-                matchingPlaceholders.removeIf(placeholder -> placeholder.charAt(finalPlaceholderIndex) != currentChar);
+                matchingPlaceholders.removeIf(placeholder -> {
+//                    if (placeholder.length() == finalPlaceholderIndex) return false;
+//                    if (placeholder.length() < finalPlaceholderIndex) return true;
+                    if (placeholder.length() <= finalPlaceholderIndex) return false;
+                    return placeholder.charAt(finalPlaceholderIndex) != currentChar;
+                });
                 // no valid placeholder
                 if (matchingPlaceholders.isEmpty()){
                     // add section
-                    finalText.append(currentSection);
+                    //finalText.append(currentSection);
+                    finalText.append("fail");
                     currentSection = new StringBuilder();
                     // setup continue
                     foundPrefix = false;
                 }
                 // one placeholder left and at end of it
                 else if (matchingPlaceholders.size() == 1) {
-                    String placeholder = matchingPlaceholders.stream().toList().getFirst();
+                    String placeholder = matchingPlaceholders.stream().toList().get(0);
                     if (placeholder.length() == currentSection.length()) {
                         // add placeholder
                         finalText.append(getPlaceholderValue(placeholder, client, joinedPlayer, leftDate, since));
@@ -280,7 +286,15 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             i++;
             placeholderIndex++;
         }
-        finalText.append(currentSection);
+        if (foundPrefix){
+            String placeholder = matchingPlaceholders.stream().toList().get(0);
+            if (placeholder.length() == currentSection.length()) {
+                // add placeholder
+                finalText.append(getPlaceholderValue(placeholder, client, joinedPlayer, leftDate, since));
+            }
+        } else {
+            finalText.append(currentSection);
+        }
         return finalText.toString();
     }
 
