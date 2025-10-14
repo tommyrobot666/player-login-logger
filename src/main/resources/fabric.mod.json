@@ -12,9 +12,6 @@
   "entrypoints": {
     "client": [
       "lommie.playerloginlogger.client.PlayerloginloggerClient"
-    ],
-    "main": [
-      "lommie.playerloginlogger.Playerloginlogger"
     ]
   },
   "depends": {

@@ -53,9 +53,9 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         formattingWithoutPrefix = Set.copyOf(Lists.asList("(reset)",allNormalMinecraftFormatting.toArray(new String[0])));
     }
     static Set<String> placeholdersWithPrefix;
-    final private String configComment =
+    static Set<String> formattingWithPrefix;
+    static final private String configComment =
             """
-            "
             Supports all of these placeholders:
             $(player) -> The player's name,
             $(month) -> Last seen on month,
@@ -75,16 +75,17 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             Supports all of these formatting:
             $(reset) -> Reset formatting and set color back to textColor,
             $1,$2,$3,$4,$5,$6,$7,$8,$9,$a,$b,$c,$d,$e,$f,$k,$l,$m,$n,$o,$r
-            -> Normal minecraft formatting (check <insert-website-here>)
+            -> Normal minecraft formatting (check https://minecraft.wiki/w/Formatting_codes)
             
             If you need to use any of these placeholders/formatting as plain text in your messages change formattingPrefix to a different character.
-            If the text after the prefix is invalid placeholder/formatting, it will not be converted to placeholder/formatting.
-            "
-            """;
+            If the text after the prefix is invalid placeholder/formatting, it will not be converted to placeholder/formatting.""";
     final MessageConfig defaultConfig = new MessageConfig(
             new MessageConfig.MessageEntry("$(player) last seen $l$(since-day)$r $lda$(end)$lys, $l$(since-hour) hours, $l$(since-minute) minutes, and $l$(since-second) seconds$r ago.","#006f00"),
             new MessageConfig.MessageEntry("$(player) seen for the $(end)$nfirst time","#00ff00"),
-            new MessageConfig.MessageEntry("Last joined this server in $(year) on $(day) of $(month-name) at $(hour):$(minute)","#eeeeee")
+            new MessageConfig.MessageEntry("Last joined this server in $(year) on $(day) of $(month-name) at $(hour):$(minute)","#eeeeee"),
+            null,
+            '$',
+            new MessageConfig.MessageEntry("Joined this server for the first time","#eeeeee")
     );
     private static final File SAVE_FILE = new File("player_login_logger_logs.dat");
     private static final File CONFIG_FILE = new File("config/player_login_logger/messages.json");
@@ -115,12 +116,19 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             this(join_message, first_time_message, welcome_back_message, null);
         }
 
+        MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, @Nullable MessageEntry leave_message, char formattingPrefix, MessageEntry self_first_time_message){
+            this(join_message, welcome_back_message, first_time_message,leave_message, formattingPrefix);
+            this.self_first_time_message = self_first_time_message;
+        }
+
         char formattingPrefix;
         MessageEntry join_message;
         MessageEntry first_time_message;
         MessageEntry leave_message;
         boolean no_leave_message = true;
         MessageEntry welcome_back_message;
+        MessageEntry self_first_time_message;
+        MessageEntry self_welcome_back_message;
 
         static class MessageEntry {
             String text;
@@ -206,7 +214,10 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 // if self
                 id == c.player.getUuid() ?
                         // do welcome
-                        config.welcome_back_message :
+                        leftDate == null ?
+                                config.self_first_time_message :
+                                config.welcome_back_message
+                        :
                         // else, is first time seen?
                         leftDate == null ?
                                 // do first join
@@ -228,7 +239,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
 
     private void sendMessage(ClientPlayerEntity player, UUID joinedPlayer, MessageConfig.MessageEntry message, MinecraftClient client, char placeholderFormattingPrefix,  LocalDateTime leftDate, Duration since){
-        player.sendMessage(Text.literal(replacePlaceholders(joinedPlayer, client, message, placeholderFormattingPrefix,leftDate,since)),false);
+        player.sendMessage(addFormatting(replacePlaceholders(joinedPlayer, client, message, placeholderFormattingPrefix,leftDate,since),message.textColor,placeholderFormattingPrefix),false);
     }
 
     private String replacePlaceholders(UUID joinedPlayer, MinecraftClient client, MessageConfig.MessageEntry message, char placeholderFormattingPrefix, LocalDateTime leftDate, Duration since) {
@@ -323,6 +334,85 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             case "(raw-since)" -> since.toString();
             default -> "{not-exist}";
         };
+    }
+
+    private Text addFormatting(String message, String color, char placeholderFormattingPrefix) {
+        MutableText finalText = Text.empty();
+        MutableText lastChild = finalText;
+        StringBuilder currentSection = new StringBuilder();
+        boolean foundPrefix = false;
+        HashSet<String> matchingFormatting = new HashSet<>(formattingWithPrefix.size());
+        int i = 0;
+        int formattingIndex = 0;
+
+        while (i < message.length()){
+            char currentChar = message.charAt(i);
+            // processing formating
+            if (foundPrefix){
+                int finalFormattingIndex = formattingIndex;
+                matchingFormatting.removeIf(formatting -> {
+                    if (formatting.length() <= finalFormattingIndex) return false;
+                    return formatting.charAt(finalFormattingIndex) != currentChar;
+                });
+                // no valid formating
+                if (matchingFormatting.isEmpty()){
+                    // add section
+                    MutableText newText = Text.literal(currentSection.toString());
+                    lastChild.append(newText);
+                    lastChild = newText;
+                    // setup continue
+                    currentSection = new StringBuilder();
+                    foundPrefix = false;
+                }
+                // one formating left and at end of it
+                else if (matchingFormatting.size() == 1) {
+                    String formatting = matchingFormatting.stream().toList().get(0);
+                    if (formatting.length() == currentSection.length()) {
+                        // add formating
+                        applyFormatting(lastChild,currentSection.toString(),color);
+                        // setup continue
+                        currentSection = new StringBuilder();
+                        foundPrefix = false;
+                        matchingFormatting.clear();
+                    }
+                }
+            }
+            // check for formatting
+            else if (currentChar == placeholderFormattingPrefix){
+                // add section
+                MutableText newText = Text.literal(currentSection.toString());
+                lastChild.append(newText);
+                lastChild = newText;
+                currentSection = new StringBuilder();
+                // setup to add formatting
+                foundPrefix = true;
+                matchingFormatting.addAll(formattingWithPrefix);
+                formattingIndex = 0;
+            }
+            currentSection.append(currentChar);
+            i++;
+            formattingIndex++;
+        }
+        if (foundPrefix){
+            String formatting = matchingFormatting.stream().toList().get(0);
+            if (formatting.length() == currentSection.length()) {
+                // add formatting
+                applyFormatting(lastChild,currentSection.toString(),color);
+            }
+        } else {
+            MutableText newText = Text.literal(currentSection.toString());
+            lastChild.append(newText);
+        }
+        return finalText;
+    }
+
+    private void applyFormatting(MutableText text, String formatting, String color) {
+        if (formatting.length() == 2){
+            text.formatted(Formatting.byCode(formatting.charAt(1)));
+        } else if (formatting.substring(1).equals("(reset)")) {
+            text.formatted(Formatting.RESET);
+            text.styled((style -> style.withColor(TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE)))));
+        }
     }
 
 
@@ -575,6 +665,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 return defaultConfig;
             }
             createPlaceholdersWithPrefix();
+            createFormattingWithPrefix();
         }
         return loadedConfig;
     }
@@ -604,6 +695,10 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     void createPlaceholdersWithPrefix(){
         placeholdersWithPrefix = placeholdersWithoutPrefix.stream().map(string -> loadedConfig.formattingPrefix+string).collect(Collectors.toSet());
+    }
+
+    void createFormattingWithPrefix(){
+        formattingWithPrefix = formattingWithoutPrefix.stream().map(string -> loadedConfig.formattingPrefix+string).collect(Collectors.toSet());
     }
 
     private NbtCompound readNbtCompound(File file) throws IOException {
