@@ -80,12 +80,13 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             If you need to use any of these placeholders/formatting as plain text in your messages change formattingPrefix to a different character.
             If the text after the prefix is invalid placeholder/formatting, it will not be converted to placeholder/formatting.""";
     final MessageConfig defaultConfig = new MessageConfig(
-            new MessageConfig.MessageEntry("$(player) last seen $l$(since-day)$r $lda$(end)$lys, $l$(since-hour) hours, $l$(since-minute) minutes, and $l$(since-second) seconds$r ago.","#006f00"),
-            new MessageConfig.MessageEntry("$(player) seen for the $(end)$nfirst time","#00ff00"),
+            new MessageConfig.MessageEntry("Joined this server for the first time","#eeeeee"),
             new MessageConfig.MessageEntry("Last joined this server in $(year) on $(day) of $(month-name) at $(hour):$(minute)","#eeeeee"),
+            new MessageConfig.MessageEntry("$(player) seen for the $(end)$nfirst time","#00ff00"),
+            new MessageConfig.MessageEntry("$(player) last seen $l$(since-day)$(reset) da$rys, $l$(since-hour)$(reset) hours, $l$(since-minute)$(reset) minutes, and $l$(since-second)$(reset) seconds ago.","#006f00"),
             null,
-            '$',
-            new MessageConfig.MessageEntry("Joined this server for the first time","#eeeeee")
+            '$'
+
     );
     private static final File SAVE_FILE = new File("player_login_logger_logs.dat");
     private static final File CONFIG_FILE = new File("config/player_login_logger/messages.json");
@@ -94,9 +95,9 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     // Config class for messages with text and textColor
     private static class MessageConfig {
-        MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, @Nullable MessageEntry leave_message, char formattingPrefix){
-            this.join_message = join_message;
-            this.first_time_message = first_time_message;
+        MessageConfig(MessageEntry self_first_time_message, MessageEntry self_welcome_back_message, MessageEntry other_first_time_message, MessageEntry other_welcome_back_message ,@Nullable MessageEntry leave_message, char formattingPrefix){
+            this.self_welcome_back_message = self_welcome_back_message;
+            this.self_first_time_message = self_first_time_message;
             if (leave_message != null){
                 this.leave_message = leave_message;
                 no_leave_message = false;
@@ -104,29 +105,16 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 this.leave_message = null;
             }
 
-            this.welcome_back_message = welcome_back_message;
+            this.other_welcome_back_message = other_welcome_back_message;
+            this.other_first_time_message = other_first_time_message;
             this.formattingPrefix = formattingPrefix;
         }
 
-        MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, @Nullable MessageEntry leave_message){
-            this(join_message, welcome_back_message, first_time_message,leave_message, '$');
-        }
-
-        MessageConfig(MessageEntry join_message, MessageEntry welcome_back_message, MessageEntry first_time_message){
-            this(join_message, first_time_message, welcome_back_message, null);
-        }
-
-        MessageConfig(MessageEntry join_message, MessageEntry first_time_message, MessageEntry welcome_back_message, @Nullable MessageEntry leave_message, char formattingPrefix, MessageEntry self_first_time_message){
-            this(join_message, welcome_back_message, first_time_message,leave_message, formattingPrefix);
-            this.self_first_time_message = self_first_time_message;
-        }
-
         char formattingPrefix;
-        MessageEntry join_message;
-        MessageEntry first_time_message;
+        MessageEntry other_first_time_message;
         MessageEntry leave_message;
         boolean no_leave_message = true;
-        MessageEntry welcome_back_message;
+        MessageEntry other_welcome_back_message;
         MessageEntry self_first_time_message;
         MessageEntry self_welcome_back_message;
 
@@ -216,14 +204,14 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                         // do welcome
                         leftDate == null ?
                                 config.self_first_time_message :
-                                config.welcome_back_message
+                                config.self_welcome_back_message
                         :
                         // else, is first time seen?
                         leftDate == null ?
                                 // do first join
-                                config.first_time_message :
+                                config.other_first_time_message :
                                 // else, normal message
-                                config.join_message;
+                                config.other_welcome_back_message;
         sendMessage(c.player,id,message,c,config.formattingPrefix,leftDate,since);
     }
 
@@ -338,6 +326,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     private Text addFormatting(String message, String color, char placeholderFormattingPrefix) {
         MutableText finalText = Text.empty();
+        finalText.styled((style -> style.withColor(TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE)))));
         MutableText lastChild = finalText;
         StringBuilder currentSection = new StringBuilder();
         boolean foundPrefix = false;
@@ -382,7 +371,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 // add section
                 MutableText newText = Text.literal(currentSection.toString());
                 lastChild.append(newText);
-                lastChild = newText;
+//                lastChild = newText;
                 currentSection = new StringBuilder();
                 // setup to add formatting
                 foundPrefix = true;
@@ -656,6 +645,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     @NotNull MessageConfig getConfigOrLoad(){
         if (loadedConfig == null){
             try {
+                LOGGER.info("loading config");
                 loadedConfig = loadConfig();
             } catch (IOException | IllegalArgumentException e) {
                 LOGGER.error("Failed to load config");
@@ -664,6 +654,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 }
                 return defaultConfig;
             }
+            LOGGER.debug("self_first_time_message:{}\nself_welcome_back_message:{}\nother_first_time_message{}\nother_welcome_back_message{}",loadedConfig.self_first_time_message,loadedConfig.self_welcome_back_message,loadedConfig.other_first_time_message,loadedConfig.other_welcome_back_message);
             createPlaceholdersWithPrefix();
             createFormattingWithPrefix();
         }
