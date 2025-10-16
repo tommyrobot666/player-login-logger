@@ -90,6 +90,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     );
     private static final File SAVE_FILE = new File("player_login_logger_logs.dat");
+    private static final Path SAVE_LOCATION = Path.of("player_login_logger");
     private static final File CONFIG_FILE = new File("config/player_login_logger/messages.json");
     private static Set<UUID> lastPlayers = new HashSet<>();
     static MessageConfig loadedConfig = null;
@@ -392,17 +393,9 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             i++;
             formattingIndex++;
         }
-        if (foundPrefix){
-            /*String formatting = matchingFormatting.stream().toList().get(0);
-            if (formatting.length() == currentSection.length()) {
-                // add formatting
-                style = applyFormatting(style,currentSection.toString(),color);
-            }*/
-        } else {
-            MutableText newText = Text.literal(currentSection.toString());
-            newText.setStyle(style);
-            finalText.append(newText);
-        }
+        MutableText newText = Text.literal(currentSection.toString());
+        newText.setStyle(style);
+        finalText.append(newText);
         return finalText;
     }
 
@@ -415,56 +408,39 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         return Style.EMPTY;
     }
 
-    private void saveLeftDate(UUID id,  String address, LocalDateTime date) {
-        NbtCompound root = null;
-        if (!SAVE_FILE.exists()) {
-            try {
-                if (SAVE_FILE.getParentFile() != null) {
-                    Files.createDirectories(SAVE_FILE.getParentFile().toPath());
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            root = new NbtCompound();
-        } else {
-            try {
-                root = readNbtCompound(SAVE_FILE);
-            } catch (IOException e) {
-                e.printStackTrace();
-                root = new NbtCompound();
-            }
-        }
-
-        NbtCompound idsAndDates = root.getCompound(address);
-
-        idsAndDates.putString(id.toString(),date.toString());
-
-        root.put(address,idsAndDates);
-
+    private void saveLeftDate(UUID id, String address, LocalDateTime date) {
         try {
-            writeNbtCompound(root,SAVE_FILE);
+            Files.createDirectories(SAVE_LOCATION);
+            NbtCompound root = new NbtCompound();
+            Path idSaveLocation = SAVE_LOCATION.resolve(id.toString() + ".dat");
+            if (Files.exists(idSaveLocation)) {
+                root = readNbtCompound(idSaveLocation);
+            }
+            root.putString(address, date.toString());
+            writeNbtCompound(root, idSaveLocation);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            for (StackTraceElement element : e.getStackTrace()) {
+                LOGGER.debug(element.toString());
+            }
         }
     }
 
     private LocalDateTime loadLeftDate(UUID id, String address) {
-        if (!SAVE_FILE.exists()) return null;
-
+        Path idSaveLocation = SAVE_LOCATION.resolve(id.toString() + ".dat");
+        if (!Files.exists(idSaveLocation)) return null;
+        NbtCompound root;
         try {
-            NbtCompound root = readNbtCompound(SAVE_FILE);
-            if(!root.contains(address)){
-                return null;
-            }
-            NbtCompound idsAndDates = root.getCompound(address);
-            String time = idsAndDates.getString(id.toString());
-            if (!time.isEmpty()){
-                return LocalDateTime.parse(time);
-            }
+            root = readNbtCompound(idSaveLocation);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
+            for (StackTraceElement element : e.getStackTrace()) {
+                LOGGER.debug(element.toString());
+            }
+            root = new NbtCompound();
         }
-        return null;
+        if (!root.contains(address)) return null;
+        return LocalDateTime.parse(root.getString(address));
     }
 
     @NotNull MessageConfig getConfigOrLoad(){
@@ -522,16 +498,16 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         formattingWithPrefix = formattingWithoutPrefix.stream().map(string -> loadedConfig.formattingPrefix+string).collect(Collectors.toSet());
     }
 
-    private NbtCompound readNbtCompound(File file) throws IOException {
+    private NbtCompound readNbtCompound(Path path) throws IOException {
         try {
             return (NbtCompound) NbtIo.class
                     .getMethod("read", Path.class)
-                    .invoke(null, file.toPath());
+                    .invoke(null, path);
         } catch (NoSuchMethodException e) {
             try {
                 return (NbtCompound) NbtIo.class
                         .getMethod("read", File.class)
-                        .invoke(null, file);
+                        .invoke(null, path.toFile());
             } catch (Exception inner) {
                 try {
                         return NbtIo.read(SAVE_FILE.toPath());
@@ -544,8 +520,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
     }
 
-    private void writeNbtCompound(NbtCompound compound ,File file) throws IOException {
-        NbtIo.write(compound, new DataOutputStream(new FileOutputStream(file)));
+    private void writeNbtCompound(NbtCompound compound ,Path path) throws IOException {
+        NbtIo.write(compound,path);
     }
 
 }
