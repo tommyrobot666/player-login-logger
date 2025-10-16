@@ -81,10 +81,10 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             If you need to use any of these placeholders/formatting as plain text in your messages change formattingPrefix to a different character.
             If the text after the prefix is invalid placeholder/formatting, it will not be converted to placeholder/formatting.""";
     final MessageConfig defaultConfig = new MessageConfig(
-            new MessageConfig.MessageEntry("Joined this server for the first time","#eeeeee"),
-            new MessageConfig.MessageEntry("Last joined this server in $(year) on $(day) of $(month-name) at $(hour):$(minute)","#eeeeee"),
-            new MessageConfig.MessageEntry("$(player) seen for the $(end)$nfirst time","#00ff00"),
-            new MessageConfig.MessageEntry("$(player) last seen $l$(since-day)$(reset) da$rys, $l$(since-hour)$(reset) hours, $l$(since-minute)$(reset) minutes, and $l$(since-second)$(reset) seconds ago.","#006f00"),
+            new MessageConfig.MessageEntry("$kaaa$(reset) Joined this server for the first time $kaaa","#eede11"),
+            new MessageConfig.MessageEntry("Last joined this server in $o$(year)$(reset) on $o$(day)$(reset) of $o$(month-name)$(reset) at $n$(hour):$(minute)","#555555"),
+            new MessageConfig.MessageEntry("$kaaa$(reset) $(player) seen for the $nfirst time$(reset) $kaaa","#00ff00"),
+            new MessageConfig.MessageEntry("$(player) last seen $l$(since-day)$(reset) days, $l$(since-hour)$(reset) hours, $l$(since-minute)$(reset) minutes, and $l$(since-second)$(reset) seconds ago.","#00aff0"),
             null,
             '$'
 
