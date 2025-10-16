@@ -11,6 +11,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
@@ -126,6 +127,14 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 this.text = text;
                 this.textColor = textColor;
             }
+
+            @Override
+            public String toString() {
+                return "MessageEntry{" +
+                        "text='" + text + '\'' +
+                        ", textColor='" + textColor + '\'' +
+                        '}';
+            }
         }
 
         public Optional<MessageEntry> getLeave_message() {
@@ -135,6 +144,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        LOGGER.info("PlayerLoginLogger loading");
         ClientTickEvents.END_CLIENT_TICK.register(c ->{
             if (c.world == null) return;
             if (c.getCurrentServerEntry() == null) return;
@@ -326,8 +336,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     private Text addFormatting(String message, String color, char placeholderFormattingPrefix) {
         MutableText finalText = Text.empty();
-        finalText.styled((style -> style.withColor(TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE)))));
-        MutableText lastChild = finalText;
+        Style style = Style.EMPTY.withColor(TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE)));
+        finalText.setStyle(style);
         StringBuilder currentSection = new StringBuilder();
         boolean foundPrefix = false;
         HashSet<String> matchingFormatting = new HashSet<>(formattingWithPrefix.size());
@@ -347,8 +357,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 if (matchingFormatting.isEmpty()){
                     // add section
                     MutableText newText = Text.literal(currentSection.toString());
-                    lastChild.append(newText);
-                    lastChild = newText;
+                    newText.setStyle(style);
+                    finalText.append(newText);
                     // setup continue
                     currentSection = new StringBuilder();
                     foundPrefix = false;
@@ -358,7 +368,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                     String formatting = matchingFormatting.stream().toList().get(0);
                     if (formatting.length() == currentSection.length()) {
                         // add formating
-                        applyFormatting(lastChild,currentSection.toString(),color);
+                        style = applyFormatting(style,currentSection.toString(),color);
                         // setup continue
                         currentSection = new StringBuilder();
                         foundPrefix = false;
@@ -370,8 +380,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             else if (currentChar == placeholderFormattingPrefix){
                 // add section
                 MutableText newText = Text.literal(currentSection.toString());
-                lastChild.append(newText);
-//                lastChild = newText;
+                newText.setStyle(style);
+                finalText.append(newText);
                 currentSection = new StringBuilder();
                 // setup to add formatting
                 foundPrefix = true;
@@ -383,25 +393,26 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             formattingIndex++;
         }
         if (foundPrefix){
-            String formatting = matchingFormatting.stream().toList().get(0);
+            /*String formatting = matchingFormatting.stream().toList().get(0);
             if (formatting.length() == currentSection.length()) {
                 // add formatting
-                applyFormatting(lastChild,currentSection.toString(),color);
-            }
+                style = applyFormatting(style,currentSection.toString(),color);
+            }*/
         } else {
             MutableText newText = Text.literal(currentSection.toString());
-            lastChild.append(newText);
+            newText.setStyle(style);
+            finalText.append(newText);
         }
         return finalText;
     }
 
-    private void applyFormatting(MutableText text, String formatting, String color) {
+    private Style applyFormatting(Style style, String formatting, String color) {
         if (formatting.length() == 2){
-            text.formatted(Formatting.byCode(formatting.charAt(1)));
+            return style.withFormatting(Formatting.byCode(formatting.charAt(1)));
         } else if (formatting.substring(1).equals("(reset)")) {
-            text.formatted(Formatting.RESET);
-            text.styled((style -> style.withColor(TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE)))));
+            return Style.EMPTY.withColor((TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE))));
         }
+        return Style.EMPTY;
     }
 
     private void saveLeftDate(UUID id,  String address, LocalDateTime date) {
@@ -478,9 +489,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     private MessageConfig loadConfig() throws IOException, IllegalArgumentException {
         if (!CONFIG_FILE.exists()) {
             // generate config file
-            Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
-            String json = new GsonBuilder().setPrettyPrinting().create().toJson(defaultConfig);
-            Files.writeString(CONFIG_FILE.toPath(), configComment + "\n|\n" + json);
+            LOGGER.debug("No config found ,Creating config file");
+            saveConfig(defaultConfig);
             return defaultConfig;
         } else {
             // read existing file
@@ -496,6 +506,12 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
             return new Gson().fromJson(reader, MessageConfig.class);
         }
+    }
+
+    private void saveConfig(MessageConfig config) throws IOException {
+        Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
+        String json = new GsonBuilder().setPrettyPrinting().create().toJson(config);
+        Files.writeString(CONFIG_FILE.toPath(), configComment + "\n|\n" + json);
     }
 
     void createPlaceholdersWithPrefix(){
