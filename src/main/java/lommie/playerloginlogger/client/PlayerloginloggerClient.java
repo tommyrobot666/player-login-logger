@@ -202,6 +202,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             // reset global var
             lastPlayers = new HashSet<>();
         });
+
+        getConfigOrLoad();
     }
 
     private void joinMessage(UUID id, MinecraftClient c) {
@@ -443,7 +445,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         return LocalDateTime.parse(root.getString(address));
     }
 
-    @NotNull MessageConfig getConfigOrLoad(){
+    public static @NotNull MessageConfig getConfigOrLoad(){
         if (loadedConfig == null){
             try {
                 LOGGER.info("loading config");
@@ -490,11 +492,11 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         Files.writeString(CONFIG_FILE.toPath(), configComment + "\n|\n" + json);
     }
 
-    void createPlaceholdersWithPrefix(){
+    static void createPlaceholdersWithPrefix(){
         placeholdersWithPrefix = placeholdersWithoutPrefix.stream().map(string -> loadedConfig.formattingPrefix+string).collect(Collectors.toSet());
     }
 
-    void createFormattingWithPrefix(){
+    static void createFormattingWithPrefix(){
         formattingWithPrefix = formattingWithoutPrefix.stream().map(string -> loadedConfig.formattingPrefix+string).collect(Collectors.toSet());
     }
 
