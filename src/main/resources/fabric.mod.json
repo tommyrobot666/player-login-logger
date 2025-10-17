@@ -12,6 +12,9 @@
   "entrypoints": {
     "client": [
       "lommie.playerloginlogger.client.PlayerloginloggerClient"
+    ],
+    "modmenu": [
+      "lommie.playerloginlogger.client.ModMenuIntegration"
     ]
   },
   "depends": {

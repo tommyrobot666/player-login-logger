@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 
 public class PlayerloginloggerClient implements ClientModInitializer {
     static final String MOD_ID = "playerloginlogger";
-    static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     final static Set<String> placeholdersWithoutPrefix;
     final static Set<String> formattingWithoutPrefix;
     static {
@@ -80,7 +80,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             
             If you need to use any of these placeholders/formatting as plain text in your messages change formattingPrefix to a different character.
             If the text after the prefix is invalid placeholder/formatting, it will not be converted to placeholder/formatting.""";
-    final MessageConfig defaultConfig = new MessageConfig(
+    static final MessageConfig defaultConfig = new MessageConfig(
             new MessageConfig.MessageEntry("$kaaa$(reset) Joined this server for the first time $kaaa","#eede11"),
             new MessageConfig.MessageEntry("Last joined this server in $o$(year)$(reset) on $o$(day)$(reset) of $o$(month-name)$(reset) at $n$(hour):$(minute)","#555555"),
             new MessageConfig.MessageEntry("$kaaa$(reset) $(player) seen for the $nfirst time$(reset) $kaaa","#00ff00"),
@@ -96,7 +96,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     static MessageConfig loadedConfig = null;
 
     // Config class for messages with text and textColor
-    private static class MessageConfig {
+    public static class MessageConfig {
         MessageConfig(MessageEntry self_first_time_message, MessageEntry self_welcome_back_message, MessageEntry other_first_time_message, MessageEntry other_welcome_back_message ,@Nullable MessageEntry leave_message, char formattingPrefix){
             this.self_welcome_back_message = self_welcome_back_message;
             this.self_first_time_message = self_first_time_message;
@@ -462,7 +462,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         return loadedConfig;
     }
 
-    private MessageConfig loadConfig() throws IOException, IllegalArgumentException {
+    public static MessageConfig loadConfig() throws IOException, IllegalArgumentException {
         if (!CONFIG_FILE.exists()) {
             // generate config file
             LOGGER.debug("No config found ,Creating config file");
@@ -484,7 +484,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         }
     }
 
-    private void saveConfig(MessageConfig config) throws IOException {
+    public static void saveConfig(MessageConfig config) throws IOException {
         Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
         String json = new GsonBuilder().setPrettyPrinting().create().toJson(config);
         Files.writeString(CONFIG_FILE.toPath(), configComment + "\n|\n" + json);
