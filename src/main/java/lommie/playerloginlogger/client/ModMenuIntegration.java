@@ -22,12 +22,12 @@ public class ModMenuIntegration implements ModMenuApi {
                 .category(ConfigCategory.createBuilder()
                         .name(Text.literal("Messages"))
                         .tooltip(Text.literal("No, this is not a tooltip"))
-                        .group(OptionGroup.createBuilder()
+                        .group(/*OptionGroup.createBuilder()
                                 .name(Text.literal("First join (self)"))
                                 .description(OptionDescription.createBuilder()
                                         .text(Text.literal("Shown when you join a server for the first time"))
                                         .build())
-                                .option(ListOption.<String>createBuilder()
+                                .option(*/ListOption.<String>createBuilder()
                                         .name(Text.literal("Text"))
                                         .description(OptionDescription.createBuilder().build())
                                         .binding(
@@ -37,7 +37,7 @@ public class ModMenuIntegration implements ModMenuApi {
                                         )
                                         .controller(StringControllerBuilder::create)
                                         .initial("")
-                                        .build())
+                                        //.build())
                                 .build())
                         .build())
                 .save(() -> {
