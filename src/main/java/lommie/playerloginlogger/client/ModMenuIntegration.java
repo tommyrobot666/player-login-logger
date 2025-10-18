@@ -42,7 +42,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Text"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when someone joins for the first time"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.other_first_time_message.text,
                                                     () -> ModMenuIntegration.other_first_time_message,
@@ -52,7 +54,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Color"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when someone joins for the first time"))
+                                                    .build())
                                             .stateManager(StateManager.createInstant(
                                                     PlayerloginloggerClient.loadedConfig.other_first_time_message.textColor,
                                                     () -> ModMenuIntegration.other_first_time_message_color,
@@ -68,23 +72,27 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Text"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when someone is seen again"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.other_welcome_back_message.text,
                                                     () -> ModMenuIntegration.other_welcome_back_message,
                                                     (value) -> ModMenuIntegration.other_welcome_back_message = value
                                             )
-                                            .controller(StringControllerBuilder::create)
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_welcome_back_message_color))
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Color"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when someone is seen again"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.other_welcome_back_message.textColor,
                                                     () -> ModMenuIntegration.other_welcome_back_message_color,
                                                     (value) -> ModMenuIntegration.other_welcome_back_message_color = value
                                             )
-                                            .controller(StringControllerBuilder::create)
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_welcome_back_message_color))
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
@@ -94,23 +102,27 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Text"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when you join a server for the first time"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.self_first_time_message.text,
                                                     () -> ModMenuIntegration.self_first_time_message,
                                                     (value) -> ModMenuIntegration.self_first_time_message = value
                                             )
-                                            .controller(StringControllerBuilder::create)
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.self_first_time_message_color))
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Color"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when you join a server for the first time"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.self_first_time_message.textColor,
                                                     () -> ModMenuIntegration.self_first_time_message_color,
                                                     (value) -> ModMenuIntegration.self_first_time_message_color = value
                                             )
-                                            .controller(StringControllerBuilder::create)
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.self_first_time_message_color))
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
@@ -120,33 +132,40 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Text"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when you join a server again"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.self_welcome_back_message.text,
                                                     () -> ModMenuIntegration.self_welcome_back_message,
                                                     (value) -> ModMenuIntegration.self_welcome_back_message = value
                                             )
-                                            .controller(StringControllerBuilder::create)
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.self_welcome_back_message_color))
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Color"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when you join a server again"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.self_welcome_back_message.textColor,
                                                     () -> ModMenuIntegration.self_welcome_back_message_color,
                                                     (value) -> ModMenuIntegration.self_welcome_back_message_color = value
                                             )
-                                            .controller(StringControllerBuilder::create)
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.self_welcome_back_message_color))
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
                                     .name(Text.literal("Leave"))
+                                    .collapsed(!ModMenuIntegration.has_leave_message)
                                     .description(OptionDescription.createBuilder()
                                             .text(Text.literal("Shown when someone leaves"))
                                             .build())
                                     .option(Option.<Boolean>createBuilder()
                                             .name(Text.literal("Text"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when someone leaves"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.getLeave_message().isPresent(),
                                                     () -> ModMenuIntegration.has_leave_message,
@@ -156,30 +175,34 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Text"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when someone leaves"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.getLeave_message().orElse(new PlayerloginloggerClient.MessageConfig.MessageEntry("", "")).text,
                                                     () -> ModMenuIntegration.leave_message,
                                                     (value) -> ModMenuIntegration.leave_message = value
                                             )
-                                            .controller(StringControllerBuilder::create)
-                                            .addListener(((option, event) -> {
-                                                option.setAvailable(ModMenuIntegration.has_leave_message);
-                                            }))
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.leave_message_color))
+//                                            .addListener(((option, event) -> option.setAvailable(ModMenuIntegration.has_leave_message)))
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Color"))
-                                            .description(OptionDescription.createBuilder().build())
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Shown when someone leaves"))
+                                                    .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.getLeave_message().orElse(new PlayerloginloggerClient.MessageConfig.MessageEntry("", "")).textColor,
                                                     () -> ModMenuIntegration.leave_message_color,
                                                     (value) -> ModMenuIntegration.leave_message_color = value
                                             )
-                                            .controller(StringControllerBuilder::create)
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.leave_message_color))
+//                                            .addListener(((option, event) -> option.setAvailable(ModMenuIntegration.has_leave_message)))
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
                                     .name(Text.literal("Other"))
+                                    .collapsed(true)
                                     .description(OptionDescription.createBuilder()
                                             .text(Text.literal("Other options"))
                                             .build())
