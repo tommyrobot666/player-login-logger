@@ -5,14 +5,19 @@ import dev.isxander.yacl3.gui.YACLScreen;
 import dev.isxander.yacl3.gui.controllers.string.IStringController;
 import dev.isxander.yacl3.gui.controllers.string.StringControllerElement;
 import dev.isxander.yacl3.gui.utils.GuiUtils;
+import lommie.playerloginlogger.client.PlayerloginloggerClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.StringVisitable;
 import net.minecraft.text.Text;
 
+import java.util.function.Supplier;
+
 public class FormattedStringControllerElement extends StringControllerElement {
-    public FormattedStringControllerElement(IStringController<?> control, YACLScreen screen, Dimension<Integer> dim, boolean instantApply) {
+    Supplier<String> textColor;
+    public FormattedStringControllerElement(IStringController<?> control, YACLScreen screen, Dimension<Integer> dim, boolean instantApply, Supplier<String> textColor) {
         super(control, screen, dim, instantApply);
+        this.textColor = textColor;
     }
 
     @Override
@@ -20,6 +25,7 @@ public class FormattedStringControllerElement extends StringControllerElement {
         // modified code
         Text valueText = this.getValueText();
         if (!this.isHovered()) {
+            valueText = PlayerloginloggerClient.addFormatting(valueText.getString(),textColor.get(),PlayerloginloggerClient.loadedConfig.formattingPrefix);
             int maxLen = GuiUtils.shortenString(valueText.getString(), this.textRenderer, this.getMaxUnwrapLength(),"").length();
             int currentLen = 0;
             MutableText newText = Text.empty().setStyle(valueText.getStyle());
@@ -30,7 +36,7 @@ public class FormattedStringControllerElement extends StringControllerElement {
                     currentLen += siblingOfValueText.getString().length();
                 } else {
                     MutableText splitSiblingOfValueText = Text.literal(siblingOfValueText.getString().substring(0,maxLen-currentLen)).setStyle(siblingOfValueText.getStyle());
-                    newText.append(siblingOfValueText);
+                    newText.append(splitSiblingOfValueText);
                     break;
                 }
             }

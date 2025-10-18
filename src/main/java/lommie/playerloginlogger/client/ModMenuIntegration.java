@@ -3,11 +3,13 @@ package lommie.playerloginlogger.client;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
 import dev.isxander.yacl3.api.*;
+import dev.isxander.yacl3.api.controller.ColorControllerBuilder;
 import dev.isxander.yacl3.api.controller.StringControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import lommie.playerloginlogger.client.yaclcontroller.FormattedStringControllerBuilder;
 import net.minecraft.text.Text;
 
+import java.awt.*;
 import java.io.IOException;
 
 public class ModMenuIntegration implements ModMenuApi {
@@ -48,15 +50,16 @@ public class ModMenuIntegration implements ModMenuApi {
                                             )
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_first_time_message_color))
                                             .build())
-                                    .option(Option.<String>createBuilder()
+                                    .option(Option.<Color>createBuilder()
                                             .name(Text.literal("Color"))
                                             .description(OptionDescription.createBuilder().build())
                                             .binding(
-                                                    PlayerloginloggerClient.loadedConfig.other_first_time_message.textColor,
-                                                    () -> ModMenuIntegration.other_first_time_message_color,
-                                                    (value) -> ModMenuIntegration.other_first_time_message_color = value
+                                                    Color.decode(PlayerloginloggerClient.loadedConfig.other_first_time_message.textColor),
+                                                    () -> Color.decode(ModMenuIntegration.other_first_time_message_color),
+                                                    (value) -> ModMenuIntegration.other_first_time_message_color = colorToString(value)
                                             )
-                                            .controller(StringControllerBuilder::create)
+                                            .controller(ColorControllerBuilder::create)
+                                            .instant(true)
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
@@ -217,5 +220,9 @@ public class ModMenuIntegration implements ModMenuApi {
                 },
                 () -> {has_leave_message=false;}
         );
+    }
+
+    public static String colorToString(Color color){
+        return String.format("#{}{}{}",color.getRed(),color.getGreen(),color.getBlue());
     }
 }
