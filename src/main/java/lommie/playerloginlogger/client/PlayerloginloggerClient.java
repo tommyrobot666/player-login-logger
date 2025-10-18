@@ -93,7 +93,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     private static final Path SAVE_LOCATION = Path.of("player_login_logger");
     private static final File CONFIG_FILE = new File("config/player_login_logger/messages.json");
     private static Set<UUID> lastPlayers = new HashSet<>();
-    static MessageConfig loadedConfig = null;
+    public static MessageConfig loadedConfig = null;
 
     // Config class for messages with text and textColor
     public static class MessageConfig {
@@ -112,7 +112,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             this.formattingPrefix = formattingPrefix;
         }
 
-        char formattingPrefix;
+        public char formattingPrefix;
         MessageEntry other_first_time_message;
         MessageEntry leave_message;
         boolean no_leave_message = true;
@@ -203,7 +203,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             lastPlayers = new HashSet<>();
         });
 
-        getConfigOrLoad();
+//        getConfigOrLoad();
+//        ModMenuIntegration.setValuesToLoadedConfig();
     }
 
     private void joinMessage(UUID id, MinecraftClient c) {
@@ -337,7 +338,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         };
     }
 
-    private Text addFormatting(String message, String color, char placeholderFormattingPrefix) {
+    public static Text addFormatting(String message, String color, char placeholderFormattingPrefix) {
         MutableText finalText = Text.empty();
         Style style = Style.EMPTY.withColor(TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE)));
         finalText.setStyle(style);
@@ -401,7 +402,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         return finalText;
     }
 
-    private Style applyFormatting(Style style, String formatting, String color) {
+    private static Style applyFormatting(Style style, String formatting, String color) {
         if (formatting.length() == 2){
             return style.withFormatting(Formatting.byCode(formatting.charAt(1)));
         } else if (formatting.substring(1).equals("(reset)")) {
