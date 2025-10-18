@@ -33,6 +33,22 @@ public class ModMenuIntegration implements ModMenuApi {
             setValuesToLoadedConfig();
             return YetAnotherConfigLib.createBuilder()
                     .title(Text.literal("Configuration for Player Login Logger"))
+                    /*.category(ConfigCategory.createBuilder()
+                            .name(Text.literal("Help"))
+                            .tooltip(Text.literal("Read this page first"))
+                            .group(OptionGroup.createBuilder()
+                                    .name(Text.literal("Help"))
+                                    .collapsed(false)
+                                    .description(OptionDescription.createBuilder()
+                                            .text(Text.literal("Some info"))
+                                            .build())
+                                    .option(LabelOption.create(Text.literal(PlayerloginloggerClient.configComment)))
+                                    .option(LabelOption.create(Text.literal("""
+                                            If you change only the text color of a message(s), then you must press the "Force save" button.
+                                            This is because YACL doesn't track whether "instantly applied" options are changed
+                                            """)))
+                                    .build())
+                            .build())*/
                     .category(ConfigCategory.createBuilder()
                             .name(Text.literal("Messages"))
                             .tooltip(Text.literal("No, this is not a tooltip"))
@@ -272,7 +288,7 @@ public class ModMenuIntegration implements ModMenuApi {
                 new PlayerloginloggerClient.MessageConfig.MessageEntry(other_first_time_message, other_first_time_message_color),
                 new PlayerloginloggerClient.MessageConfig.MessageEntry(other_welcome_back_message, other_welcome_back_message_color),
                 leave_message_entry,
-                '$'
+                formatting_prefix
         );
         try {
             PlayerloginloggerClient.saveConfig(PlayerloginloggerClient.loadedConfig);

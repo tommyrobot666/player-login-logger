@@ -4,6 +4,7 @@ import dev.isxander.yacl3.api.utils.Dimension;
 import dev.isxander.yacl3.gui.YACLScreen;
 import dev.isxander.yacl3.gui.controllers.string.IStringController;
 import dev.isxander.yacl3.gui.controllers.string.StringControllerElement;
+import lommie.playerloginlogger.client.ModMenuIntegration;
 import lommie.playerloginlogger.client.PlayerloginloggerClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.*;
@@ -24,7 +25,7 @@ public class FormattedStringControllerElement extends StringControllerElement {
         // modified code
         Text valueText = this.getValueText();
         if (!this.isHovered()) {
-            valueText = PlayerloginloggerClient.addFormatting(valueText.getString(),textColor.get(),PlayerloginloggerClient.loadedConfig.formattingPrefix);
+            valueText = PlayerloginloggerClient.addFormatting(valueText.getString(),textColor.get(), ModMenuIntegration.formatting_prefix);
             /*int maxLen = GuiUtils.shortenString(valueText.getString(), this.textRenderer, this.getMaxUnwrapLength(),"").length();
             int currentLen = 0;
             MutableText newText = Text.empty().setStyle(valueText.getStyle());
