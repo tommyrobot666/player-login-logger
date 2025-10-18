@@ -50,16 +50,15 @@ public class ModMenuIntegration implements ModMenuApi {
                                             )
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_first_time_message_color))
                                             .build())
-                                    .option(Option.<Color>createBuilder()
+                                    .option(Option.<String>createBuilder()
                                             .name(Text.literal("Color"))
                                             .description(OptionDescription.createBuilder().build())
-                                            .binding(
-                                                    Color.decode(PlayerloginloggerClient.loadedConfig.other_first_time_message.textColor),
-                                                    () -> Color.decode(ModMenuIntegration.other_first_time_message_color),
-                                                    (value) -> ModMenuIntegration.other_first_time_message_color = colorToString(value)
-                                            )
-                                            .controller(ColorControllerBuilder::create)
-                                            .instant(true)
+                                            .stateManager(StateManager.createInstant(
+                                                    PlayerloginloggerClient.loadedConfig.other_first_time_message.textColor,
+                                                    () -> ModMenuIntegration.other_first_time_message_color,
+                                                    (value) -> ModMenuIntegration.other_first_time_message_color = value
+                                            ))
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_first_time_message_color))
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
@@ -177,6 +176,28 @@ public class ModMenuIntegration implements ModMenuApi {
                                                     (value) -> ModMenuIntegration.leave_message_color = value
                                             )
                                             .controller(StringControllerBuilder::create)
+                                            .build())
+                                    .build())
+                            .group(OptionGroup.createBuilder()
+                                    .name(Text.literal("Other"))
+                                    .description(OptionDescription.createBuilder()
+                                            .text(Text.literal("Other options"))
+                                            .build())
+                                    .option(ButtonOption.createBuilder()
+                                            .name(Text.literal("Reset settings"))
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("\"AAAAHHHH! -The Settings\"")).build())
+                                            .text(Text.literal("Reset all"))
+                                            .action(((yaclScreen, buttonOption) -> {
+                                                PlayerloginloggerClient.loadedConfig = PlayerloginloggerClient.defaultConfig;
+                                                try {
+                                                    PlayerloginloggerClient.saveConfig(PlayerloginloggerClient.defaultConfig);
+                                                } catch (IOException e) {
+                                                    e.printStackTrace();
+                                                }
+                                                yaclScreen.finishOrSave();
+                                                yaclScreen.close();
+                                            }))
                                             .build())
                                     .build())
                             .build())

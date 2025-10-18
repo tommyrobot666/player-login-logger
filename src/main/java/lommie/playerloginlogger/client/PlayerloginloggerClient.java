@@ -449,7 +449,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     public static @NotNull MessageConfig getConfigOrLoad(){
         if (loadedConfig == null){
             try {
-                LOGGER.info("loading config");
+                LOGGER.info("Loading config");
                 loadedConfig = loadConfig();
             } catch (IOException | IllegalArgumentException e) {
                 LOGGER.error("Failed to load config");
@@ -488,6 +488,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
 
     public static void saveConfig(MessageConfig config) throws IOException {
+        LOGGER.info("Saving config");
         Files.createDirectories(CONFIG_FILE.getParentFile().toPath());
         String json = new GsonBuilder().setPrettyPrinting().create().toJson(config);
         Files.writeString(CONFIG_FILE.toPath(), configComment + "\n|\n" + json);
