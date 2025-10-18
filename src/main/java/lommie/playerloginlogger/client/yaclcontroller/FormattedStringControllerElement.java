@@ -4,13 +4,12 @@ import dev.isxander.yacl3.api.utils.Dimension;
 import dev.isxander.yacl3.gui.YACLScreen;
 import dev.isxander.yacl3.gui.controllers.string.IStringController;
 import dev.isxander.yacl3.gui.controllers.string.StringControllerElement;
-import dev.isxander.yacl3.gui.utils.GuiUtils;
 import lommie.playerloginlogger.client.PlayerloginloggerClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.StringVisitable;
-import net.minecraft.text.Text;
+import net.minecraft.text.*;
+import net.minecraft.util.Formatting;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
 public class FormattedStringControllerElement extends StringControllerElement {
@@ -26,7 +25,7 @@ public class FormattedStringControllerElement extends StringControllerElement {
         Text valueText = this.getValueText();
         if (!this.isHovered()) {
             valueText = PlayerloginloggerClient.addFormatting(valueText.getString(),textColor.get(),PlayerloginloggerClient.loadedConfig.formattingPrefix);
-            int maxLen = GuiUtils.shortenString(valueText.getString(), this.textRenderer, this.getMaxUnwrapLength(),"").length();
+            /*int maxLen = GuiUtils.shortenString(valueText.getString(), this.textRenderer, this.getMaxUnwrapLength(),"").length();
             int currentLen = 0;
             MutableText newText = Text.empty().setStyle(valueText.getStyle());
             for (int i = 0; i < valueText.getSiblings().size(); i++) {
@@ -41,9 +40,9 @@ public class FormattedStringControllerElement extends StringControllerElement {
                 }
             }
             newText.append(Text.literal("..."));
-            valueText = newText;
+            valueText = newText;*/
         } else {
-            valueText = Text.literal(valueText.getString());
+            valueText = Text.literal(valueText.getString()).setStyle(Objects.equals(valueText.getString(), textColor.get()) ?Style.EMPTY.withColor(TextColor.parse(textColor.get()).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE))):Style.EMPTY);
         }
 
         // random junk

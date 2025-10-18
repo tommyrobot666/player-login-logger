@@ -55,7 +55,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
     static Set<String> placeholdersWithPrefix;
     static Set<String> formattingWithPrefix;
-    static final private String configComment =
+    static final public String configComment =
             """
             Supports all of these placeholders:
             $(player) -> The player's name,

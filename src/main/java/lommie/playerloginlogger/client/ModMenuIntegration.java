@@ -24,6 +24,7 @@ public class ModMenuIntegration implements ModMenuApi {
     public static boolean has_leave_message = false;
     public static String leave_message = "";
     public static String leave_message_color = "";
+    public static char formatting_prefix = '$';
 
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
@@ -35,6 +36,18 @@ public class ModMenuIntegration implements ModMenuApi {
                     .category(ConfigCategory.createBuilder()
                             .name(Text.literal("Messages"))
                             .tooltip(Text.literal("No, this is not a tooltip"))
+                            .group(OptionGroup.createBuilder()
+                                    .name(Text.literal("Help"))
+                                    .collapsed(true)
+                                    .description(OptionDescription.createBuilder()
+                                            .text(Text.literal("Some info"))
+                                            .build())
+                                    .option(LabelOption.create(Text.literal(PlayerloginloggerClient.configComment)))
+                                    .option(LabelOption.create(Text.literal("""
+                                            If you change only the text color of a message(s), then you must press the "Force save" button.
+                                            This is because YACL doesn't track whether "instantly applied" options are changed
+                                            """)))
+                                    .build())
                             .group(OptionGroup.createBuilder()
                                     .name(Text.literal("First join"))
                                     .description(OptionDescription.createBuilder()
@@ -162,7 +175,7 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .text(Text.literal("Shown when someone leaves"))
                                             .build())
                                     .option(Option.<Boolean>createBuilder()
-                                            .name(Text.literal("Text"))
+                                            .name(Text.literal("Show leave message"))
                                             .description(OptionDescription.createBuilder()
                                                     .text(Text.literal("Shown when someone leaves"))
                                                     .build())
@@ -206,6 +219,25 @@ public class ModMenuIntegration implements ModMenuApi {
                                     .description(OptionDescription.createBuilder()
                                             .text(Text.literal("Other options"))
                                             .build())
+                                    .option(Option.<String>createBuilder()
+                                            .name(Text.literal("Formatting Prefix"))
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("Prefix used to detect placeholders and formatting (usually '$')"))
+                                                    .build())
+                                            .binding(
+                                                    String.valueOf(PlayerloginloggerClient.loadedConfig.formattingPrefix),
+                                                    () -> String.valueOf(ModMenuIntegration.formatting_prefix),
+                                                    (value) -> ModMenuIntegration.formatting_prefix = value.isEmpty()?'$':value.charAt(0)
+                                            )
+                                            .controller(StringControllerBuilder::create)
+                                            .build())
+                                    .option(ButtonOption.createBuilder()
+                                            .name(Text.literal("Force save"))
+                                            .description(OptionDescription.createBuilder()
+                                                    .text(Text.literal("\"Why doesn't it notice that I changed the text's color?\" -You")).build())
+                                            .text(Text.literal("Save"))
+                                            .action(((yaclScreen, buttonOption) -> save()))
+                                            .build())
                                     .option(ButtonOption.createBuilder()
                                             .name(Text.literal("Reset settings"))
                                             .description(OptionDescription.createBuilder()
@@ -224,27 +256,29 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .build())
                             .build())
-                    .save(() -> {
-                        PlayerloginloggerClient.MessageConfig.MessageEntry leave_message_entry = null;
-                        if (ModMenuIntegration.has_leave_message) {
-                            leave_message_entry = new PlayerloginloggerClient.MessageConfig.MessageEntry(leave_message, leave_message_color);
-                        }
-                        PlayerloginloggerClient.loadedConfig = new PlayerloginloggerClient.MessageConfig(
-                                new PlayerloginloggerClient.MessageConfig.MessageEntry(self_first_time_message, self_first_time_message_color),
-                                new PlayerloginloggerClient.MessageConfig.MessageEntry(self_welcome_back_message, self_welcome_back_message_color),
-                                new PlayerloginloggerClient.MessageConfig.MessageEntry(other_first_time_message, other_first_time_message_color),
-                                new PlayerloginloggerClient.MessageConfig.MessageEntry(other_welcome_back_message, other_welcome_back_message_color),
-                                leave_message_entry,
-                                '$'
-                        );
-                        try {
-                            PlayerloginloggerClient.saveConfig(PlayerloginloggerClient.loadedConfig);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    })
+                    .save(() -> save())
                     .build().generateScreen(parent);
         });
+    }
+
+    static void save(){
+        PlayerloginloggerClient.MessageConfig.MessageEntry leave_message_entry = null;
+        if (ModMenuIntegration.has_leave_message) {
+            leave_message_entry = new PlayerloginloggerClient.MessageConfig.MessageEntry(leave_message, leave_message_color);
+        }
+        PlayerloginloggerClient.loadedConfig = new PlayerloginloggerClient.MessageConfig(
+                new PlayerloginloggerClient.MessageConfig.MessageEntry(self_first_time_message, self_first_time_message_color),
+                new PlayerloginloggerClient.MessageConfig.MessageEntry(self_welcome_back_message, self_welcome_back_message_color),
+                new PlayerloginloggerClient.MessageConfig.MessageEntry(other_first_time_message, other_first_time_message_color),
+                new PlayerloginloggerClient.MessageConfig.MessageEntry(other_welcome_back_message, other_welcome_back_message_color),
+                leave_message_entry,
+                '$'
+        );
+        try {
+            PlayerloginloggerClient.saveConfig(PlayerloginloggerClient.loadedConfig);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void setValuesToLoadedConfig(){
