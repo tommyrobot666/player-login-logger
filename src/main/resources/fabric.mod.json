@@ -7,7 +7,7 @@
   "authors": ["Me"],
   "contact": {"Github": "https://github.com/tommyrobot666/player-login-logger"},
   "license": "MIT",
-  "icon": "icon.png",
+  "icon": "icon2.png",
   "environment": "client",
   "entrypoints": {
     "client": [

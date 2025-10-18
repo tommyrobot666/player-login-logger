@@ -1,0 +1,3 @@
+sudo apt install webp
+cd "mnt/c/Users/.../PlayerLoginLogger/src/main/resources"
+dwebp icon.webp -o icon2.png
