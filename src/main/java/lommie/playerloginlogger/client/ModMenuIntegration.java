@@ -46,7 +46,7 @@ public class ModMenuIntegration implements ModMenuApi {
                                                     () -> ModMenuIntegration.other_first_time_message,
                                                     (value) -> ModMenuIntegration.other_first_time_message = value
                                             )
-                                            .controller(FormattedStringControllerBuilder::create)
+                                            .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_first_time_message_color))
                                             .build())
                                     .option(Option.<String>createBuilder()
                                             .name(Text.literal("Color"))

@@ -8,14 +8,18 @@ import dev.isxander.yacl3.gui.controllers.string.StringController;
 import lommie.playerloginlogger.client.PlayerloginloggerClient;
 import net.minecraft.text.Text;
 
+import java.util.function.Supplier;
+
 public class FormattedStringController extends StringController {
-    public FormattedStringController(Option<String> option) {
+    Supplier<String> textColor;
+    public FormattedStringController(Option<String> option, Supplier<String> textColor) {
         super(option);
+        this.textColor = textColor;
     }
 
     @Override
     public Text formatValue() {
-        return PlayerloginloggerClient.addFormatting(this.getString(),"white",PlayerloginloggerClient.loadedConfig.formattingPrefix);
+        return PlayerloginloggerClient.addFormatting(this.getString(),textColor.get(),PlayerloginloggerClient.loadedConfig.formattingPrefix);
     }
 
     @Override
