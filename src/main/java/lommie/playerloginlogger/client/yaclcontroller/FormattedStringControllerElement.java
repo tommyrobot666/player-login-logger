@@ -11,6 +11,7 @@ import net.minecraft.text.*;
 import net.minecraft.util.Formatting;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class FormattedStringControllerElement extends StringControllerElement {
@@ -43,7 +44,7 @@ public class FormattedStringControllerElement extends StringControllerElement {
             newText.append(Text.literal("..."));
             valueText = newText;*/
         } else {
-            valueText = Text.literal(valueText.getString()).setStyle(Objects.equals(valueText.getString(), textColor.get()) ?Style.EMPTY.withColor(TextColor.parse(textColor.get()).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE))):Style.EMPTY);
+            valueText = Text.literal(valueText.getString()).setStyle(Objects.equals(valueText.getString(), textColor.get()) ?Style.EMPTY.withColor(Optional.ofNullable(TextColor.parse(textColor.get())).orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE))):Style.EMPTY);
         }
 
         // random junk

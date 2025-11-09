@@ -312,7 +312,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         assert client.world != null;
         return switch (placeholder.substring(1)) {
             case "(player)" ->
-                    client.world.getPlayerByUuid(playerId) == null ? "{" + playerId.toString() + "}" : Objects.requireNonNull(client.world.getPlayerByUuid(playerId)).getName().getLiteralString();
+                    client.world.getPlayerByUuid(playerId) == null ? "{" + playerId.toString() + "}" : Objects.requireNonNull(client.world.getPlayerByUuid(playerId)).getName().getString();
             case "(month-name)" ->
                     leftDate == null ? "{null}" : leftDate.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
             case "(month)" ->
@@ -340,7 +340,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     public static Text addFormatting(String message, String color, char placeholderFormattingPrefix) {
         MutableText finalText = Text.empty();
-        Style style = Style.EMPTY.withColor(TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE)));
+        Style style = Style.EMPTY.withColor(Optional.ofNullable(TextColor.parse(color)).orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE)));
         finalText.setStyle(style);
         StringBuilder currentSection = new StringBuilder();
         boolean foundPrefix = false;
@@ -406,7 +406,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         if (formatting.length() == 2){
             return style.withFormatting(Formatting.byCode(formatting.charAt(1)));
         } else if (formatting.substring(1).equals("(reset)")) {
-            return Style.EMPTY.withColor((TextColor.parse(color).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE))));
+            return Style.EMPTY.withColor((Optional.ofNullable(TextColor.parse(color)).orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE))));
         }
         return Style.EMPTY;
     }
@@ -503,11 +503,11 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
 
     private NbtCompound readNbtCompound(Path path) throws IOException {
-        return NbtIo.read(path);
+        return NbtIo.read(path.toFile());
     }
 
     private void writeNbtCompound(NbtCompound compound ,Path path) throws IOException {
-        NbtIo.write(compound,path);
+        NbtIo.write(compound,path.toFile());
     }
 
 }
