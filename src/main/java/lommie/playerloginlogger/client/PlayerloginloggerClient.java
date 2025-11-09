@@ -443,7 +443,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             root = new NbtCompound();
         }
         if (!root.contains(address)) return null;
-        return LocalDateTime.parse(root.getString(address));
+        return LocalDateTime.parse(root.getString(address).orElse(LocalDateTime.now().toString()));
     }
 
     public static @NotNull MessageConfig getConfigOrLoad(){
