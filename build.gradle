@@ -100,3 +100,10 @@ publishing {
         // retrieving dependencies.
     }
 }
+
+tasks.register("renameJarFile", DefaultTask) {
+    file("build/libs/${project.archives_base_name}-${project.mod_version}.jar").renameTo("build/libs/${project.archives_base_name}-${project.mod_version}+${project.minecraft_version}.jar")
+//    rename "build/libs/${project.archives_base_name}-${project.mod_version}.jar", "build/libs/${project.archives_base_name}-${project.mod_version}+${project.minecraft_version}.jar"
+}
+
+build.finalizedBy(renameJarFile)
