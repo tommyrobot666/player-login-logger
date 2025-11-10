@@ -20,7 +20,7 @@
   "depends": {
     "fabricloader": ">=0.1.13.0",
     "fabric": "*",
-    "minecraft": ">=1.20.5 <=1.21.4"
+    "minecraft": ">=1.20.3 <=1.20.6"
   },
   "recommends": {
     "yet_another_config_lib_v3": "*",
