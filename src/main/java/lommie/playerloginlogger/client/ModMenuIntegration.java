@@ -91,6 +91,11 @@ public class ModMenuIntegration implements ModMenuApi {
                                                     () -> ModMenuIntegration.other_first_time_message_color,
                                                     (value) -> ModMenuIntegration.other_first_time_message_color = value
                                             ))
+                                            /*.binding(
+                                                    PlayerloginloggerClient.loadedConfig.other_first_time_message.textColor,
+                                                    () -> ModMenuIntegration.other_first_time_message_color,
+                                                    (value) -> ModMenuIntegration.other_first_time_message_color = value
+                                            )*/
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_first_time_message_color))
                                             .build())
                                     .build())
@@ -121,6 +126,11 @@ public class ModMenuIntegration implements ModMenuApi {
                                                     () -> ModMenuIntegration.other_welcome_back_message_color,
                                                     (value) -> ModMenuIntegration.other_welcome_back_message_color = value
                                             ))
+                                            /*.binding(
+                                                    PlayerloginloggerClient.loadedConfig.other_welcome_back_message.textColor,
+                                                    () -> ModMenuIntegration.other_welcome_back_message_color,
+                                                    (value) -> ModMenuIntegration.other_welcome_back_message_color = value
+                                            )*/
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_welcome_back_message_color))
                                             .build())
                                     .build())
@@ -151,6 +161,11 @@ public class ModMenuIntegration implements ModMenuApi {
                                                     () -> ModMenuIntegration.self_first_time_message_color,
                                                     (value) -> ModMenuIntegration.self_first_time_message_color = value
                                             ))
+                                            /*.binding(
+                                                    PlayerloginloggerClient.loadedConfig.self_first_time_message.textColor,
+                                                    () -> ModMenuIntegration.self_first_time_message_color,
+                                                    (value) -> ModMenuIntegration.self_first_time_message_color = value
+                                            )*/
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.self_first_time_message_color))
                                             .build())
                                     .build())
@@ -181,6 +196,11 @@ public class ModMenuIntegration implements ModMenuApi {
                                                     () -> ModMenuIntegration.self_welcome_back_message_color,
                                                     (value) -> ModMenuIntegration.self_welcome_back_message_color = value
                                             ))
+                                            /*.binding(
+                                                    PlayerloginloggerClient.loadedConfig.self_welcome_back_message.textColor,
+                                                    () -> ModMenuIntegration.self_welcome_back_message_color,
+                                                    (value) -> ModMenuIntegration.self_welcome_back_message_color = value
+                                            )*/
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.self_welcome_back_message_color))
                                             .build())
                                     .build())
@@ -225,6 +245,11 @@ public class ModMenuIntegration implements ModMenuApi {
                                                     () -> ModMenuIntegration.leave_message_color,
                                                     (value) -> ModMenuIntegration.leave_message_color = value
                                             ))
+                                            /*.binding(
+                                                    PlayerloginloggerClient.loadedConfig.getLeave_message().orElse(new PlayerloginloggerClient.MessageConfig.MessageEntry("", "")).textColor,
+                                                    () -> ModMenuIntegration.leave_message_color,
+                                                    (value) -> ModMenuIntegration.leave_message_color = value
+                                            )*/
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.leave_message_color))
 //                                            .addListener(((option, event) -> option.setAvailable(ModMenuIntegration.has_leave_message)))
                                             .build())
