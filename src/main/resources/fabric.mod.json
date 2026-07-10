@@ -4,7 +4,7 @@
   "version": "${version}",
   "name": "Last Seen Message",
   "description": "Receive messages when someone joins a server that tells you the last time you have played together.",
-  "authors": ["Me"],
+  "authors": ["Ommie"],
   "contact": {"Github": "https://github.com/tommyrobot666/player-login-logger"},
   "license": "MIT",
   "icon": "icon2.png",
@@ -18,9 +18,9 @@
     ]
   },
   "depends": {
-    "fabricloader": ">=0.1.13.0",
-    "fabric": "*",
-    "minecraft": ">=1.21.5"
+    "fabricloader": ">=0.1.17.0",
+    "fabric-api": "*",
+    "minecraft": ">=26"
   },
   "recommends": {
     "yet_another_config_lib_v3": "*",
