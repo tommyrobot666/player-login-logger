@@ -6,9 +6,11 @@ import dev.isxander.yacl3.gui.controllers.string.IStringController;
 import dev.isxander.yacl3.gui.controllers.string.StringControllerElement;
 import lommie.playerloginlogger.client.ModMenuIntegration;
 import lommie.playerloginlogger.client.PlayerloginloggerClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.*;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -21,9 +23,8 @@ public class FormattedStringControllerElement extends StringControllerElement {
     }
 
     @Override
-    protected void drawValueText(DrawContext graphics, int mouseX, int mouseY, float delta) {
-        // modified code
-        Text valueText = this.getValueText();
+    protected void extractValueText(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        Component valueText = getValueText();
         if (!this.isHovered()) {
             valueText = PlayerloginloggerClient.addFormatting(valueText.getString(),textColor.get(), ModMenuIntegration.formatting_prefix);
             /*int maxLen = GuiUtils.shortenString(valueText.getString(), this.textRenderer, this.getMaxUnwrapLength(),"").length();
@@ -43,44 +44,43 @@ public class FormattedStringControllerElement extends StringControllerElement {
             newText.append(Text.literal("..."));
             valueText = newText;*/
         } else {
-            valueText = Text.literal(valueText.getString()).setStyle(Objects.equals(valueText.getString(), textColor.get()) ?Style.EMPTY.withColor(TextColor.parse(textColor.get()).result().orElseGet(() -> TextColor.fromFormatting(Formatting.WHITE))):Style.EMPTY);
+            valueText = Component.literal(valueText.getString()).setStyle(Objects.equals(valueText.getString(), textColor.get()) ? Style.EMPTY.withColor(TextColor.parseColor(textColor.get()).result().orElseGet(() -> TextColor.fromLegacyFormat(ChatFormatting.WHITE))):Style.EMPTY);
         }
 
-        // random junk
-        int textX = (Integer)this.getDimension().xLimit() - this.textRenderer.getWidth((StringVisitable)valueText) + this.renderOffset - this.getXPadding();
-        graphics.enableScissor((Integer)this.inputFieldBounds.x(), (Integer)this.inputFieldBounds.y() - 2, (Integer)this.inputFieldBounds.xLimit() + 1, (Integer)this.inputFieldBounds.yLimit() + 4);
-        graphics.drawText(this.textRenderer, (Text)valueText, textX, this.getTextY(), this.getValueColor(), true);
-        if (this.isHovered()) {
-            this.ticks += delta;
-            String text = this.getValueText().getString();
-            graphics.fill((Integer)this.inputFieldBounds.x(), (Integer)this.inputFieldBounds.yLimit(), (Integer)this.inputFieldBounds.xLimit(), (Integer)this.inputFieldBounds.yLimit() + 1, -1);
-            graphics.fill((Integer)this.inputFieldBounds.x() + 1, (Integer)this.inputFieldBounds.yLimit() + 1, (Integer)this.inputFieldBounds.xLimit() + 1, (Integer)this.inputFieldBounds.yLimit() + 2, -12566464);
-            if (this.inputFieldFocused || this.focused) {
-                if (this.caretPos > text.length()) {
-                    this.caretPos = text.length();
+        int textX = getDimension().xLimit() - textRenderer.width(valueText) + renderOffset - getXPadding();
+        graphics.enableScissor(inputFieldBounds.x(), inputFieldBounds.y() - 2, inputFieldBounds.xLimit() + 1, inputFieldBounds.yLimit() + 4);
+        graphics.text(textRenderer, valueText, textX, getTextY(), getValueColor(), true);
+
+        if (isHovered()) {
+            ticks += a;
+
+            String text = getValueText().getString();
+
+            graphics.fill(inputFieldBounds.x(), inputFieldBounds.yLimit(), inputFieldBounds.xLimit(), inputFieldBounds.yLimit() + 1, -1);
+            graphics.fill(inputFieldBounds.x() + 1, inputFieldBounds.yLimit() + 1, inputFieldBounds.xLimit() + 1, inputFieldBounds.yLimit() + 2, 0xFF404040);
+
+            if (inputFieldFocused || focused) {
+                if (caretPos > text.length())
+                    caretPos = text.length();
+
+                int caretX = textX + textRenderer.width(text.substring(0, caretPos));
+                if (text.isEmpty())
+                    caretX = inputFieldBounds.x() + inputFieldBounds.width() / 2;
+
+                if (selectionLength != 0) {
+                    int selectionX = textX + textRenderer.width(text.substring(0, caretPos + selectionLength));
+                    graphics.fill(caretX, inputFieldBounds.y() - 2, selectionX, inputFieldBounds.yLimit() - 1, 0x803030FF);
                 }
 
-                int caretX = textX + this.textRenderer.getWidth(text.substring(0, this.caretPos));
-                if (text.isEmpty()) {
-                    caretX = (Integer)this.inputFieldBounds.x() + (Integer)this.inputFieldBounds.width() / 2;
+                if(caretPos != previousCaretPos) {
+                    previousCaretPos = caretPos;
+                    caretTicks = 0;
                 }
 
-                if (this.selectionLength != 0) {
-                    int selectionX = textX + this.textRenderer.getWidth(text.substring(0, this.caretPos + this.selectionLength));
-                    graphics.fill(caretX, (Integer)this.inputFieldBounds.y() - 2, selectionX, (Integer)this.inputFieldBounds.yLimit() - 1, -2144325377);
-                }
-
-                if (this.caretPos != this.previousCaretPos) {
-                    this.previousCaretPos = this.caretPos;
-                    this.caretTicks = 0.0F;
-                }
-
-                if ((this.caretTicks += delta) % 20.0F <= 10.0F) {
-                    graphics.fill(caretX, (Integer)this.inputFieldBounds.y() - 2, caretX + 1, (Integer)this.inputFieldBounds.yLimit() - 1, -1);
-                }
+                if ((caretTicks += a) % 20 <= 10)
+                    graphics.fill(caretX, inputFieldBounds.y() - 2, caretX + 1, inputFieldBounds.yLimit() - 1, -1);
             }
         }
-
         graphics.disableScissor();
     }
 }

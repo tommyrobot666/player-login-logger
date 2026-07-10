@@ -4,15 +4,25 @@ import dev.isxander.yacl3.api.Option;
 import dev.isxander.yacl3.api.utils.Dimension;
 import dev.isxander.yacl3.gui.AbstractWidget;
 import dev.isxander.yacl3.gui.YACLScreen;
-import dev.isxander.yacl3.gui.controllers.string.StringController;
+import dev.isxander.yacl3.gui.controllers.string.IStringController;
 
 import java.util.function.Supplier;
 
-public class FormattedStringController extends StringController {
-    Supplier<String> textColor;
-    public FormattedStringController(Option<String> option, Supplier<String> textColor) {
-        super(option);
-        this.textColor = textColor;
+public record FormattedStringController(Option<String> option, Supplier<String> textColor) implements IStringController<String> {
+
+    @Override
+    public String getString() {
+        return option().pendingValue();
+    }
+
+    @Override
+    public void setFromString(String value) {
+        option().requestSet(value);
+    }
+
+    @Override
+    public Option<String> option() {
+        return option;
     }
 
     @Override

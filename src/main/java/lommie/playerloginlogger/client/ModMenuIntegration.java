@@ -3,11 +3,10 @@ package lommie.playerloginlogger.client;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
 import dev.isxander.yacl3.api.*;
-import dev.isxander.yacl3.api.controller.ColorControllerBuilder;
 import dev.isxander.yacl3.api.controller.StringControllerBuilder;
 import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import lommie.playerloginlogger.client.yaclcontroller.FormattedStringControllerBuilder;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 import java.awt.*;
 import java.io.IOException;
@@ -32,47 +31,47 @@ public class ModMenuIntegration implements ModMenuApi {
             PlayerloginloggerClient.getConfigOrLoad();
             setValuesToLoadedConfig();
             return YetAnotherConfigLib.createBuilder()
-                    .title(Text.literal("Configuration for Player Login Logger"))
+                    .title(Component.literal("Configuration for Player Login Logger"))
                     /*.category(ConfigCategory.createBuilder()
-                            .name(Text.literal("Help"))
-                            .tooltip(Text.literal("Read this page first"))
+                            .name(Component.literal("Help"))
+                            .tooltip(Component.literal("Read this page first"))
                             .group(OptionGroup.createBuilder()
-                                    .name(Text.literal("Help"))
+                                    .name(Component.literal("Help"))
                                     .collapsed(false)
                                     .description(OptionDescription.createBuilder()
-                                            .text(Text.literal("Some info"))
+                                            .text(Component.literal("Some info"))
                                             .build())
-                                    .option(LabelOption.create(Text.literal(PlayerloginloggerClient.configComment)))
-                                    .option(LabelOption.create(Text.literal("""
+                                    .option(LabelOption.create(Component.literal(PlayerloginloggerClient.configComment)))
+                                    .option(LabelOption.create(Component.literal("""
                                             If you change only the text color of a message(s), then you must press the "Force save" button.
                                             This is because YACL doesn't track whether "instantly applied" options are changed
                                             """)))
                                     .build())
                             .build())*/
                     .category(ConfigCategory.createBuilder()
-                            .name(Text.literal("Messages"))
-                            .tooltip(Text.literal("No, this is not a tooltip"))
+                            .name(Component.literal("Messages"))
+                            .tooltip(Component.literal("No, this is not a tooltip"))
                             .group(OptionGroup.createBuilder()
-                                    .name(Text.literal("Help"))
+                                    .name(Component.literal("Help"))
                                     .collapsed(true)
                                     .description(OptionDescription.createBuilder()
-                                            .text(Text.literal("Some info"))
+                                            .text(Component.literal("Some info"))
                                             .build())
-                                    .option(LabelOption.create(Text.literal(PlayerloginloggerClient.configComment)))
-                                    .option(LabelOption.create(Text.literal("""
+                                    .option(LabelOption.create(Component.literal(PlayerloginloggerClient.configComment)))
+                                    .option(LabelOption.create(Component.literal("""
                                             If you change only the text color of a message(s), then you must press the "Force save" button.
                                             This is because YACL doesn't track whether "instantly applied" options are changed
                                             """)))
                                     .build())
                             .group(OptionGroup.createBuilder()
-                                    .name(Text.literal("First join"))
+                                    .name(Component.literal("First join"))
                                     .description(OptionDescription.createBuilder()
-                                            .text(Text.literal("Shown when someone joins for the first time"))
+                                            .text(Component.literal("Shown when someone joins for the first time"))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Text"))
+                                            .name(Component.literal("Component"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when someone joins for the first time"))
+                                                    .text(Component.literal("Shown when someone joins for the first time"))
                                                     .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.other_first_time_message.text,
@@ -82,9 +81,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_first_time_message_color))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Color"))
+                                            .name(Component.literal("Color"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when someone joins for the first time"))
+                                                    .text(Component.literal("Shown when someone joins for the first time"))
                                                     .build())
                                             .stateManager(StateManager.createInstant(
                                                     PlayerloginloggerClient.loadedConfig.other_first_time_message.textColor,
@@ -95,14 +94,14 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
-                                    .name(Text.literal("Welcome back"))
+                                    .name(Component.literal("Welcome back"))
                                     .description(OptionDescription.createBuilder()
-                                            .text(Text.literal("Shown when someone is seen again"))
+                                            .text(Component.literal("Shown when someone is seen again"))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Text"))
+                                            .name(Component.literal("Component"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when someone is seen again"))
+                                                    .text(Component.literal("Shown when someone is seen again"))
                                                     .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.other_welcome_back_message.text,
@@ -112,9 +111,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.other_welcome_back_message_color))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Color"))
+                                            .name(Component.literal("Color"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when someone is seen again"))
+                                                    .text(Component.literal("Shown when someone is seen again"))
                                                     .build())
                                             .stateManager(StateManager.createInstant(
                                                     PlayerloginloggerClient.loadedConfig.other_welcome_back_message.textColor,
@@ -125,14 +124,14 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
-                                    .name(Text.literal("First join (self)"))
+                                    .name(Component.literal("First join (self)"))
                                     .description(OptionDescription.createBuilder()
-                                            .text(Text.literal("Shown when you join a server for the first time"))
+                                            .text(Component.literal("Shown when you join a server for the first time"))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Text"))
+                                            .name(Component.literal("Component"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when you join a server for the first time"))
+                                                    .text(Component.literal("Shown when you join a server for the first time"))
                                                     .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.self_first_time_message.text,
@@ -142,9 +141,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.self_first_time_message_color))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Color"))
+                                            .name(Component.literal("Color"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when you join a server for the first time"))
+                                                    .text(Component.literal("Shown when you join a server for the first time"))
                                                     .build())
                                             .stateManager(StateManager.createInstant(
                                                     PlayerloginloggerClient.loadedConfig.self_first_time_message.textColor,
@@ -155,14 +154,14 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
-                                    .name(Text.literal("Welcome back (self)"))
+                                    .name(Component.literal("Welcome back (self)"))
                                     .description(OptionDescription.createBuilder()
-                                            .text(Text.literal("Shown when you join a server aegain"))
+                                            .text(Component.literal("Shown when you join a server aegain"))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Text"))
+                                            .name(Component.literal("Component"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when you join a server again"))
+                                                    .text(Component.literal("Shown when you join a server again"))
                                                     .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.self_welcome_back_message.text,
@@ -172,9 +171,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .controller((option) -> FormattedStringControllerBuilder.create(option,() -> ModMenuIntegration.self_welcome_back_message_color))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Color"))
+                                            .name(Component.literal("Color"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when you join a server again"))
+                                                    .text(Component.literal("Shown when you join a server again"))
                                                     .build())
                                             .stateManager(StateManager.createInstant(
                                                     PlayerloginloggerClient.loadedConfig.self_welcome_back_message.textColor,
@@ -185,15 +184,15 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
-                                    .name(Text.literal("Leave"))
+                                    .name(Component.literal("Leave"))
                                     .collapsed(!ModMenuIntegration.has_leave_message)
                                     .description(OptionDescription.createBuilder()
-                                            .text(Text.literal("Shown when someone leaves"))
+                                            .text(Component.literal("Shown when someone leaves"))
                                             .build())
                                     .option(Option.<Boolean>createBuilder()
-                                            .name(Text.literal("Show leave message"))
+                                            .name(Component.literal("Show leave message"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when someone leaves"))
+                                                    .text(Component.literal("Shown when someone leaves"))
                                                     .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.getLeave_message().isPresent(),
@@ -203,9 +202,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .controller(TickBoxControllerBuilder::create)
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Text"))
+                                            .name(Component.literal("Component"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when someone leaves"))
+                                                    .text(Component.literal("Shown when someone leaves"))
                                                     .build())
                                             .binding(
                                                     PlayerloginloggerClient.loadedConfig.getLeave_message().orElse(new PlayerloginloggerClient.MessageConfig.MessageEntry("", "")).text,
@@ -216,9 +215,9 @@ public class ModMenuIntegration implements ModMenuApi {
 //                                            .addListener(((option, event) -> option.setAvailable(ModMenuIntegration.has_leave_message)))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Color"))
+                                            .name(Component.literal("Color"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Shown when someone leaves"))
+                                                    .text(Component.literal("Shown when someone leaves"))
                                                     .build())
                                             .stateManager(StateManager.createInstant(
                                                     PlayerloginloggerClient.loadedConfig.getLeave_message().orElse(new PlayerloginloggerClient.MessageConfig.MessageEntry("", "")).textColor,
@@ -230,15 +229,15 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .build())
                                     .build())
                             .group(OptionGroup.createBuilder()
-                                    .name(Text.literal("Other"))
+                                    .name(Component.literal("Other"))
                                     .collapsed(true)
                                     .description(OptionDescription.createBuilder()
-                                            .text(Text.literal("Other options"))
+                                            .text(Component.literal("Other options"))
                                             .build())
                                     .option(Option.<String>createBuilder()
-                                            .name(Text.literal("Formatting Prefix"))
+                                            .name(Component.literal("Formatting Prefix"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("Prefix used to detect placeholders and formatting (usually '$')"))
+                                                    .text(Component.literal("Prefix used to detect placeholders and formatting (usually '$')"))
                                                     .build())
                                             .binding(
                                                     String.valueOf(PlayerloginloggerClient.loadedConfig.formattingPrefix),
@@ -248,17 +247,17 @@ public class ModMenuIntegration implements ModMenuApi {
                                             .controller(StringControllerBuilder::create)
                                             .build())
                                     .option(ButtonOption.createBuilder()
-                                            .name(Text.literal("Force save"))
+                                            .name(Component.literal("Force save"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("\"Why doesn't it notice that I changed the text's color?\" -You")).build())
-                                            .text(Text.literal("Save"))
+                                                    .text(Component.literal("\"Why doesn't it notice that I changed the text's color?\" -You")).build())
+                                            .text(Component.literal("Save"))
                                             .action(((yaclScreen, buttonOption) -> save()))
                                             .build())
                                     .option(ButtonOption.createBuilder()
-                                            .name(Text.literal("Reset settings"))
+                                            .name(Component.literal("Reset settings"))
                                             .description(OptionDescription.createBuilder()
-                                                    .text(Text.literal("\"AAAAHHHH! -The Settings\"")).build())
-                                            .text(Text.literal("Reset all"))
+                                                    .text(Component.literal("\"AAAAHHHH! -The Settings\"")).build())
+                                            .text(Component.literal("Reset all"))
                                             .action(((yaclScreen, buttonOption) -> {
                                                 PlayerloginloggerClient.loadedConfig = PlayerloginloggerClient.defaultConfig;
                                                 try {
@@ -267,7 +266,7 @@ public class ModMenuIntegration implements ModMenuApi {
                                                     e.printStackTrace();
                                                 }
                                                 yaclScreen.finishOrSave();
-                                                yaclScreen.close();
+                                                yaclScreen.onClose();
                                             }))
                                             .build())
                                     .build())

@@ -121,19 +121,19 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         MessageEntry self_welcome_back_message;
 
         static class MessageEntry {
-            String Component;
-            String TextColor;
+            String text;
+            String textColor;
 
-            public MessageEntry(String Component, String TextColor) {
-                this.Component = Component;
-                this.TextColor = TextColor;
+            public MessageEntry(String text, String textColor) {
+                this.text = text;
+                this.textColor = textColor;
             }
 
             @Override
             public String toString() {
                 return "MessageEntry{" +
-                        "Component='" + Component + '\'' +
-                        ", TextColor='" + TextColor + '\'' +
+                        "text='" + text + '\'' +
+                        ", textColor='" + textColor + '\'' +
                         '}';
             }
         }
@@ -241,7 +241,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
 
     private void sendMessage(LocalPlayer player, UUID joinedPlayer, MessageConfig.MessageEntry message, Minecraft client, char placeholderFormattingPrefix, LocalDateTime leftDate, Duration since){
-        player.sendSystemMessage(addFormatting(replacePlaceholders(joinedPlayer, client, message, placeholderFormattingPrefix,leftDate,since),message.TextColor,placeholderFormattingPrefix));
+        player.sendSystemMessage(addFormatting(replacePlaceholders(joinedPlayer, client, message, placeholderFormattingPrefix,leftDate,since),message.textColor,placeholderFormattingPrefix));
     }
 
     private String replacePlaceholders(UUID joinedPlayer, Minecraft client, MessageConfig.MessageEntry message, char placeholderFormattingPrefix, LocalDateTime leftDate, Duration since) {
@@ -252,8 +252,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
         int i = 0;
         int placeholderIndex = 0;
 
-        while (i < message.Component.length()){
-            char currentChar = message.Component.charAt(i);
+        while (i < message.text.length()){
+            char currentChar = message.text.charAt(i);
             // processing placeholder
             if (foundPrefix){
                 int finalPlaceholderIndex = placeholderIndex;
