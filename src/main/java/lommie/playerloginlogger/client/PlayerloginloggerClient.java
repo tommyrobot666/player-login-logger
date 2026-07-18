@@ -357,6 +357,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             // processing formating
             if (foundPrefix){
                 int finalFormattingIndex = formattingIndex;
+                HashSet matchingFormattingLastTime = (HashSet) matchingFormatting.clone();
                 // filter out not matching formattings
                 matchingFormatting.removeIf(formatting -> {
                     if (formatting.length() <= finalFormattingIndex) return false;
@@ -364,6 +365,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 });
                 // no valid formating
                 if (matchingFormatting.isEmpty()){
+                    LOGGER.warn(Arrays.toString(matchingFormattingLastTime.toArray()));
                     // add section
                     MutableComponent newText = Component.literal(currentSection.toString());
                     newText.setStyle(style);
@@ -375,6 +377,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 // one formating left and at end of it (finished parsing, now doing)
                 else if (matchingFormatting.size() == 1) {
                     String formatting = matchingFormatting.stream().toList().getFirst();
+                    LOGGER.warn(formatting);
                     if (formatting.length() == currentSection.length()) {
                         // add formating
                         style = applyFormatting(style,currentSection.toString(),color);
@@ -395,6 +398,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                 // setup to add formatting
                 foundPrefix = true;
                 matchingFormatting.addAll(formattingWithPrefix);
+                LOGGER.warn(Arrays.toString(formattingWithPrefix.toArray()));
                 formattingIndex = 0;
             }
             currentSection.append(currentChar);
