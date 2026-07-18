@@ -74,12 +74,12 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             $(raw-since) -> Duration.toString();
 
             Supports all of these formatting:
-            $(reset) -> Reset formatting and set color back to TextColor,
+            $(reset) -> Reset formatting and set color back to textColor,
             $1,$2,$3,$4,$5,$6,$7,$8,$9,$a,$b,$c,$d,$e,$f,$k,$l,$m,$n,$o,$r
             -> Normal minecraft formatting (check https://minecraft.wiki/w/Formatting_codes)
 
-            If you need to use any of these placeholders/formatting as plain Component in your messages change formattingPrefix to a different character.
-            If the Component after the prefix is invalid placeholder/formatting, it will not be converted to placeholder/formatting.""";
+            If you need to use any of these placeholders/formatting as plain text in your messages change formattingPrefix to a different character.
+            If the text after the prefix is invalid placeholder/formatting, it will not be converted to placeholder/formatting.""";
     static final MessageConfig defaultConfig = new MessageConfig(
             new MessageConfig.MessageEntry("$kaaa$(reset) Joined this server for the first time $kaaa","#eede11"),
             new MessageConfig.MessageEntry("Last joined this server in $o$(year)$(reset) on $o$(day)$(reset) of $o$(month-name)$(reset) at $n$(hour):$(minute)","#555555"),
@@ -95,7 +95,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     private static Set<UUID> lastPlayers = new HashSet<>();
     public static MessageConfig loadedConfig = null;
 
-    // Config class for messages with Component and TextColor
+    // Config class for messages with text and textColor
     public static class MessageConfig {
         MessageConfig(MessageEntry self_first_time_message, MessageEntry self_welcome_back_message, MessageEntry other_first_time_message, MessageEntry other_welcome_back_message ,@Nullable MessageEntry leave_message, char formattingPrefix){
             this.self_welcome_back_message = self_welcome_back_message;
