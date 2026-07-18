@@ -241,7 +241,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
 
     private void sendMessage(LocalPlayer player, UUID joinedPlayer, MessageConfig.MessageEntry message, Minecraft client, char placeholderFormattingPrefix, LocalDateTime leftDate, Duration since){
-        player.sendSystemMessage(addFormatting(replacePlaceholders(joinedPlayer, client, message, placeholderFormattingPrefix,leftDate,since),message.textColor,placeholderFormattingPrefix));
+        String placeHoldersReplaced = replacePlaceholders(joinedPlayer, client, message, placeholderFormattingPrefix,leftDate,since);
+        player.sendSystemMessage(addFormatting(placeHoldersReplaced,message.textColor,placeholderFormattingPrefix));
     }
 
     private String replacePlaceholders(UUID joinedPlayer, Minecraft client, MessageConfig.MessageEntry message, char placeholderFormattingPrefix, LocalDateTime leftDate, Duration since) {
@@ -257,6 +258,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             // processing placeholder
             if (foundPrefix){
                 int finalPlaceholderIndex = placeholderIndex;
+                // filter out not matching placeholderss
                 matchingPlaceholders.removeIf(placeholder -> {
                     if (placeholder.length() <= finalPlaceholderIndex) return false;
                     return placeholder.charAt(finalPlaceholderIndex) != currentChar;
@@ -266,12 +268,12 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                     // add section
                     finalText.append(currentSection);
                     currentSection = new StringBuilder();
-                    // setup continue
+                    // setup continue (reset)
                     foundPrefix = false;
                 }
-                // one placeholder left and at end of it
+                // one placeholder left and at end of it (finished parsing, now doing)
                 else if (matchingPlaceholders.size() == 1) {
-                    String placeholder = matchingPlaceholders.stream().toList().get(0);
+                    String placeholder = matchingPlaceholders.stream().toList().getFirst();
                     if (placeholder.length() == currentSection.length()) {
                         // add placeholder
                         finalText.append(getPlaceholderValue(placeholder, client, joinedPlayer, leftDate, since));
@@ -297,7 +299,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             placeholderIndex++;
         }
         if (foundPrefix){
-            String placeholder = matchingPlaceholders.stream().toList().get(0);
+            String placeholder = matchingPlaceholders.stream().toList().getFirst();
             if (placeholder.length() == currentSection.length()) {
                 // add placeholder
                 finalText.append(getPlaceholderValue(placeholder, client, joinedPlayer, leftDate, since));
@@ -339,6 +341,8 @@ public class PlayerloginloggerClient implements ClientModInitializer {
     }
 
     public static Component addFormatting(String message, String color, char placeholderFormattingPrefix) {
+        // This is function 2 of 2, replacePlaceholders is the first one
+
         MutableComponent finalText = Component.empty();
         Style style = Style.EMPTY.withColor(TextColor.parseColor(color).result().orElseGet(() -> TextColor.fromLegacyFormat(ChatFormatting.WHITE)));
         finalText.setStyle(style);
@@ -353,6 +357,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
             // processing formating
             if (foundPrefix){
                 int finalFormattingIndex = formattingIndex;
+                // filter out not matching formattings
                 matchingFormatting.removeIf(formatting -> {
                     if (formatting.length() <= finalFormattingIndex) return false;
                     return formatting.charAt(finalFormattingIndex) != currentChar;
@@ -363,13 +368,13 @@ public class PlayerloginloggerClient implements ClientModInitializer {
                     MutableComponent newText = Component.literal(currentSection.toString());
                     newText.setStyle(style);
                     finalText.append(newText);
-                    // setup continue
+                    // setup continue (reset)
                     currentSection = new StringBuilder();
                     foundPrefix = false;
                 }
-                // one formating left and at end of it
+                // one formating left and at end of it (finished parsing, now doing)
                 else if (matchingFormatting.size() == 1) {
-                    String formatting = matchingFormatting.stream().toList().get(0);
+                    String formatting = matchingFormatting.stream().toList().getFirst();
                     if (formatting.length() == currentSection.length()) {
                         // add formating
                         style = applyFormatting(style,currentSection.toString(),color);
@@ -404,7 +409,7 @@ public class PlayerloginloggerClient implements ClientModInitializer {
 
     private static Style applyFormatting(Style style, String formatting, String color) {
         if (formatting.length() == 2){
-            return style.applyLegacyFormat(ChatFormatting.getByCode(formatting.charAt(1)));
+            return style.applyLegacyFormat(Objects.requireNonNull(ChatFormatting.getByCode(formatting.charAt(1))));
         } else if (formatting.substring(1).equals("(reset)")) {
             return Style.EMPTY.withColor((TextColor.parseColor(color).result().orElseGet(() -> TextColor.fromLegacyFormat(ChatFormatting.WHITE))));
         }
